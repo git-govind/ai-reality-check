@@ -139,6 +139,20 @@
   .grey   { background:#161b22; border-color:#30363d; }
   .grey   .box-title { color:#8b949e; }
 
+  .pink   { background:#2d0c1e; border-color:#ec4899; }
+  .pink   .box-title { color:#f9a8d4; }
+  .pink   .box-tag   { background:#3d1428; color:#f9a8d4; }
+
+  .indigo { background:#0f0c2d; border-color:#6366f1; }
+  .indigo .box-title { color:#a5b4fc; }
+  .indigo .box-tag   { background:#1a1840; color:#a5b4fc; }
+
+  .w-meta { background:#0f0c2d; border-color:#6366f1; color:#a5b4fc; }
+  .w-pix  { background:#0c2626; border-color:#059669; color:#34d399; }
+  .w-ai   { background:#1c0c2d; border-color:#8b5cf6; color:#d2a8ff; }
+  .w-con2 { background:#2d1b06; border-color:#d29922; color:#e3b341; }
+  .w-rev  { background:#0c2044; border-color:#1f6feb; color:#79c0ff; }
+
   /* ── arrows ── */
   .arrow-down {
     width: 100%;
@@ -285,14 +299,61 @@
     background: #30363d;
     margin: 0 auto;
   }
+
+  /* ── tabs ── */
+  .tab-nav {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid #21262d;
+    margin-bottom: 20px;
+    padding-bottom: 0;
+  }
+  .tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    color: #8b949e;
+    padding: 9px 22px;
+    font-size: .82rem;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    position: relative;
+    bottom: -1px;
+    transition: color .15s, background .15s;
+  }
+  .tab-btn:hover { background: #161b22; color: #e6edf3; border-color: #21262d; }
+  .tab-btn.active {
+    background: #161b22;
+    color: #f0f6fc;
+    border-color: #30363d;
+    border-bottom-color: #161b22;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
 </style>
 </head>
 <body>
 
 <h1>🔍 AI Reality Check</h1>
-<div class="subtitle">System Architecture — End-to-End Evaluation Pipeline</div>
+<div class="subtitle">System Architecture</div>
 
-<div style="max-width:1060px;margin:0 auto;">
+<div style="max-width:90%;margin:0 auto;">
+
+  <!-- ── Tab navigation ── -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab(this,'text')">📝 Text Evaluation Pipeline</button>
+    <button class="tab-btn"        onclick="switchTab(this,'image')">🖼️ Image Evaluation Pipeline</button>
+  </div>
+
+  <!-- ══ TEXT PIPELINE TAB ══ -->
+  <div id="tab-text" class="tab-panel active">
+
+  <div style="font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+              color:#6e7681;margin-bottom:12px;padding-left:4px;">
+    📝 Text Evaluation Pipeline — app.py + src/
+  </div>
 
   <!-- ── ROW 0: UI ── -->
   <div style="border:1px solid #21262d;border-radius:12px;overflow:hidden;">
@@ -303,15 +364,16 @@
       <div style="flex:1;padding:14px 18px;">
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
 
-          <div class="box blue box-wide">
+          <div class="box grey box-narrow">
             <div class="box-title">
-              🖥 Streamlit Interface
+              🗺 Navigation Router
               <span class="box-tag">app.py</span>
             </div>
             <div class="box-sub">
-              Prompt input · Model selector · Temperature/tokens<br>
-              Stress Test mode · Side-by-side compare toggle<br>
-              <span class="note">session_state: is_evaluating · cancel_requested · history</span>
+              st.navigation + st.Page<br>
+              Controls sidebar order<br>
+              &amp; page labels<br>
+              <span class="note">entry-point: streamlit run app.py</span>
             </div>
           </div>
 
@@ -320,9 +382,37 @@
               <span class="box-tag">pages/1_Dashboard.py</span>
             </div>
             <div class="box-sub">
-              Confidence trend · Score bars<br>
-              Model comparison · Issue heatmap<br>
-              <span class="note">reads session_state["history"]</span>
+              <b>📝 Text Evaluations tab</b><br>
+              Confidence trend · Score bars · Model compare<br>
+              <b>🖼 Image Evaluations tab</b><br>
+              Authenticity trend · Grade distribution<br>
+              Flag frequency · Most suspicious images<br>
+              <span class="note">reads session_state["history"] + ["img_history"]</span>
+            </div>
+          </div>
+
+          <div class="box blue box-wide">
+            <div class="box-title">
+              🔍 AI Reality Check
+              <span class="box-tag">pages/2_Text_Evaluator.py</span>
+            </div>
+            <div class="box-sub">
+              Prompt input · Model selector · Temperature/tokens<br>
+              Stress Test mode · Side-by-side compare toggle<br>
+              <span class="note">session_state: is_evaluating · cancel_requested · history</span>
+            </div>
+          </div>
+
+          <div class="box indigo">
+            <div class="box-title">
+              🖼 Image Evaluator
+              <span class="box-tag">pages/3_Image_Evaluator.py</span>
+            </div>
+            <div class="box-sub">
+              Image upload · Optional caption<br>
+              5-step progress display · Evidence tabs<br>
+              Authenticity grade · AI/editing likelihood<br>
+              <span class="note">session_state: img_evaluating · img_report · img_history</span>
             </div>
           </div>
 
@@ -570,31 +660,251 @@
 
   </div><!-- end main card -->
 
+  </div><!-- end tab-text panel -->
+
+  <!-- ══ IMAGE PIPELINE TAB ══ -->
+  <div id="tab-image" class="tab-panel">
+
+  <!-- ── IMAGE EVALUATOR PIPELINE ── -->
+  <div>
+    <div style="font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+                color:#6e7681;margin-bottom:12px;padding-left:4px;">
+      🖼 Image Evaluation Pipeline — image_evaluator/
+    </div>
+
+    <div style="border:1px solid #21262d;border-radius:12px;overflow:hidden;">
+
+      <!-- Layer: Image Input -->
+      <div style="display:flex;border-bottom:1px solid #21262d;">
+        <div class="layer-label" style="background:#0d1117;">Input</div>
+        <div style="flex:1;padding:14px 18px;">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <div class="box indigo box-wide">
+              <div class="box-title">📥 evaluate_image()
+                <span class="box-tag">evaluate_image.py</span>
+              </div>
+              <div class="box-sub">
+                Public entry-point — accepts raw <b>image_bytes: bytes</b> + optional <b>caption: str</b><br>
+                Orchestrates all 5 pipeline steps sequentially · Returns ImageEvaluationReport<br>
+                <span class="note">Fully isolated from text pipeline — no shared state or imports</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- arrow -->
+      <div class="flow-label" style="padding:6px 0 2px;">image_bytes: bytes · caption: str | None</div>
+      <div class="arr-row" style="padding:2px 0 4px;"><div class="arr-head-up"></div></div>
+
+      <!-- Layer: 5 pipeline steps -->
+      <div style="display:flex;border-top:1px solid #21262d;border-bottom:1px solid #21262d;">
+        <div class="layer-label" style="background:#0d1117;">Pipeline Steps</div>
+        <div style="flex:1;padding:14px 18px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+
+            <div class="box orange" style="flex:1;min-width:140px;">
+              <div class="box-title">📋 Step 1 — Metadata
+                <span class="box-tag">metadata_checker.py</span>
+              </div>
+              <div class="box-sub">
+                EXIF via Pillow getexif()<br>
+                Scoring: start 100<br>
+                −30 no EXIF<br>
+                −40 editing software<br>
+                −20 no camera model<br>
+                −10 timestamp anomaly<br>
+                +20 valid camera pipeline<br>
+                → MetadataResult.score [0,1]
+              </div>
+            </div>
+
+            <div class="box teal" style="flex:1;min-width:140px;">
+              <div class="box-title">🔎 Step 2 — Pixel Forensics
+                <span class="box-tag">pixel_forensics.py</span>
+              </div>
+              <div class="box-sub">
+                <b>ELA</b>: re-compress at q=75, pixel diff<br>
+                <b>Noise</b>: Gaussian residual · std · CV<br>
+                <b>FFT</b>: spectral peak ratio<br>
+                <b>JPEG quant</b>: table suspicion check<br>
+                Formula:<br>
+                100−(ela×0.40+noise×0.30+fft×0.30)<br>
+                → PixelForensicsResult.score [0,1]
+              </div>
+            </div>
+
+            <div class="box purple" style="flex:1;min-width:150px;">
+              <div class="box-title">🤖 Step 3 — AI Artifact
+                <span class="box-tag">ai_artifact_classifier.py</span>
+              </div>
+              <div class="box-sub">
+                <b>6 heuristics</b> (always runs):<br>
+                texture smoothness · colour entropy<br>
+                edge sharpness · HF/LF ratio<br>
+                saturation skew · bilateral symmetry<br>
+                <b>FreqNet-inspired</b> (always runs):<br>
+                spectral roll-off · mid-freq anomaly<br>
+                spectral entropy · peak prominence<br>
+                <b>CLIP probe</b> (optional, SKIP_CLIP=1 to skip)<br>
+                method: heuristic+freqnet[+model]<br>
+                → AIArtifactResult.ai_prob [0,1]
+              </div>
+            </div>
+
+            <div class="box blue" style="flex:1;min-width:140px;">
+              <div class="box-title">📝 Step 4 — Consistency
+                <span class="box-tag">image_text_consistency.py</span>
+              </div>
+              <div class="box-sub">
+                <b>CLIP path</b> (preferred):<br>
+                start 100 · penalty scoring:<br>
+                −40 object mismatch<br>
+                −30 impossible geometry<br>
+                −20 lighting/physics mismatch<br>
+                −10 caption hallucination (×3 max)<br>
+                <b>Keyword fallback</b> (no CLIP):<br>
+                dominant colour matching<br>
+                <span class="note">Skipped if no caption supplied</span>
+                → ConsistencyResult.score [0,1]
+              </div>
+            </div>
+
+            <div class="box green" style="flex:1;min-width:140px;">
+              <div class="box-title">🌐 Step 5 — Reverse Search
+                <span class="box-tag">reverse_image_search.py</span>
+              </div>
+              <div class="box-sub">
+                <b>Priority order:</b><br>
+                1. Google Cloud Vision API<br>
+                2. Bing Visual Search API<br>
+                3. SerpApi (Google Lens)<br>
+                pHash refinement on source DLs<br>
+                Similarity tiers:<br>
+                full match → 1.00<br>
+                partial match → 0.80<br>
+                pages only → 0.50<br>
+                <span class="note">Skipped if no API key configured</span>
+                → ReverseSearchResult.similarity [0,1]
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- arrow -->
+      <div class="flow-label" style="padding:6px 0 2px;">
+        MetadataResult · PixelForensicsResult · AIArtifactResult · ConsistencyResult · ReverseSearchResult
+      </div>
+      <div class="arr-row" style="padding:2px 0 4px;"><div class="arr-head-up"></div></div>
+
+      <!-- Layer: Scoring -->
+      <div style="display:flex;border-top:1px solid #21262d;">
+        <div class="layer-label" style="background:#0d1117;">Scoring</div>
+        <div style="flex:1;padding:14px 18px;">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+
+            <div class="box pink box-wide">
+              <div class="box-title">⚡ Image Scoring Engine
+                <span class="box-tag">image_scoring.py</span>
+              </div>
+              <div class="box-sub">
+                <b>Exact formula (spec §1):</b><br>
+                authenticity_score = weighted_sum × 100
+                <div class="weights">
+                  <span class="weight-pill w-meta">Metadata 20%</span>
+                  <span class="weight-pill w-pix">Pixel 25%</span>
+                  <span class="weight-pill w-ai">AI Artifact 35%</span>
+                  <span class="weight-pill w-con2">Consistency 10%</span>
+                  <span class="weight-pill w-rev">Reverse Search 10%</span>
+                </div>
+                Skipped steps → weight redistributed proportionally<br>
+                ai_likelihood = ai_prob × 100<br>
+                editing_likelihood = keyword-weighted flag scan<br>
+                Grade: A ≥80 · B ≥65 · C ≥50 · D ≥35 · F &lt;35
+              </div>
+            </div>
+
+            <div class="box grey" style="min-width:200px;">
+              <div class="box-title">📦 ImageEvaluationReport</div>
+              <div class="box-sub" style="font-size:.68rem;">
+                authenticity_score [0–100]<br>
+                ai_likelihood [0–100]<br>
+                editing_likelihood [0–100]<br>
+                grade · summary<br>
+                evidence: {<br>
+                &nbsp;&nbsp;metadata_flags: [...]<br>
+                &nbsp;&nbsp;pixel_artifacts: [...]<br>
+                &nbsp;&nbsp;ai_artifact_features: [...]<br>
+                &nbsp;&nbsp;ai_artifact_features_dict: {...}<br>
+                &nbsp;&nbsp;consistency_issues: [...]<br>
+                &nbsp;&nbsp;reverse_search_hits: [...] }<br>
+                component_scores · component_weights
+              </div>
+            </div>
+
+            <div class="box grey" style="min-width:170px;">
+              <div class="box-title">💾 Image History</div>
+              <div class="box-sub" style="font-size:.68rem;">
+                session_state["img_history"]<br>
+                stores: ts · filename · caption<br>
+                authenticity · ai_likelihood<br>
+                editing_likelihood · grade · report<br>
+                Shown in Dashboard tab:<br>
+                🖼 Image Evaluations<br>
+                <span class="note">lost on page refresh</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end image pipeline card -->
+  </div><!-- end image pipeline wrapper -->
+
+  </div><!-- end tab-image panel -->
+
   <!-- ── LEGEND ── -->
   <div class="legend">
     <div class="legend-item">
       <div class="legend-dot" style="background:#0c2044;border-color:#1f6feb;"></div> UI / LLM Backend
     </div>
     <div class="legend-item">
-      <div class="legend-dot" style="background:#0c2d1c;border-color:#238636;"></div> LLM Response Generator
+      <div class="legend-dot" style="background:#0c2d1c;border-color:#238636;"></div> LLM Response / Reverse Search
     </div>
     <div class="legend-item">
-      <div class="legend-dot" style="background:#2d1b06;border-color:#d29922;"></div> Factual Checker
+      <div class="legend-dot" style="background:#2d1b06;border-color:#d29922;"></div> Factual / Metadata Checker
     </div>
     <div class="legend-item">
-      <div class="legend-dot" style="background:#1c0c2d;border-color:#8b5cf6;"></div> Consistency / Scoring
+      <div class="legend-dot" style="background:#1c0c2d;border-color:#8b5cf6;"></div> Consistency / AI Artifact / Scoring
     </div>
     <div class="legend-item">
       <div class="legend-dot" style="background:#2d0c0c;border-color:#da3633;"></div> Bias &amp; Safety
     </div>
     <div class="legend-item">
-      <div class="legend-dot" style="background:#0c2626;border-color:#059669;"></div> Clarity / DuckDB
+      <div class="legend-dot" style="background:#0c2626;border-color:#059669;"></div> Clarity / Pixel Forensics
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#0f0c2d;border-color:#6366f1;"></div> Image UI / Entry-point
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#2d0c1e;border-color:#ec4899;"></div> Image Scoring Engine
     </div>
     <div class="legend-item" style="margin-left:12px;">
-      <span style="font-size:.72rem;color:#6e7681;">LLM calls per evaluation (critique ON): <b style="color:#e3b341;">3</b> · compare mode ON: <b style="color:#e3b341;">6</b></span>
+      <span style="font-size:.72rem;color:#6e7681;">Text LLM calls (critique ON): <b style="color:#e3b341;">3</b> · compare mode ON: <b style="color:#e3b341;">6</b> &nbsp;|&nbsp; Image pipeline: <b style="color:#a5b4fc;">CPU-only · no GPU required</b></span>
     </div>
   </div>
 
 </div><!-- end max-width wrapper -->
+<script>
+function switchTab(btn, name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
 </body>
 </html>
