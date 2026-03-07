@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Reality Check — Architecture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 32px;
+    min-height: 100vh;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #f0f6fc;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: .78rem;
+    color: #6e7681;
+    margin-bottom: 28px;
+    letter-spacing: .04em;
+  }
+
+  /* ── layout grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 200px 1fr 200px;
+    grid-template-rows: auto auto auto auto auto;
+    gap: 0;
+    max-width: 1060px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* ── layer bands ── */
+  .layer {
+    display: contents;
+  }
+  .layer-label {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #6e7681;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px;
+    border-right: 1px solid #21262d;
+  }
+  .layer-right {
+    border-right: none;
+    border-left: 1px solid #21262d;
+  }
+
+  /* ── row containers ── */
+  .row {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #21262d;
+    position: relative;
+  }
+  .row:last-child { border-bottom: none; }
+
+  /* ── boxes ── */
+  .box {
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: .8rem;
+    line-height: 1.5;
+    border: 1px solid;
+    position: relative;
+    min-width: 130px;
+  }
+  .box-title {
+    font-weight: 700;
+    font-size: .82rem;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .box-sub {
+    font-size: .72rem;
+    color: #8b949e;
+    line-height: 1.4;
+  }
+  .box-tag {
+    font-size: .62rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 20px;
+    margin-left: auto;
+  }
+
+  /* colour themes */
+  .blue   { background:#0c2044; border-color:#1f6feb; }
+  .blue   .box-title { color:#79c0ff; }
+  .blue   .box-tag   { background:#1f3a5f; color:#79c0ff; }
+
+  .green  { background:#0c2d1c; border-color:#238636; }
+  .green  .box-title { color:#56d364; }
+  .green  .box-tag   { background:#1b3a28; color:#56d364; }
+
+  .orange { background:#2d1b06; border-color:#d29922; }
+  .orange .box-title { color:#e3b341; }
+  .orange .box-tag   { background:#3d2a0a; color:#e3b341; }
+
+  .red    { background:#2d0c0c; border-color:#da3633; }
+  .red    .box-title { color:#ff7b72; }
+  .red    .box-tag   { background:#3d1414; color:#ff7b72; }
+
+  .purple { background:#1c0c2d; border-color:#8b5cf6; }
+  .purple .box-title { color:#d2a8ff; }
+  .purple .box-tag   { background:#2d1a3d; color:#d2a8ff; }
+
+  .teal   { background:#0c2626; border-color:#059669; }
+  .teal   .box-title { color:#34d399; }
+  .teal   .box-tag   { background:#0d2e2e; color:#34d399; }
+
+  .grey   { background:#161b22; border-color:#30363d; }
+  .grey   .box-title { color:#8b949e; }
+
+  /* ── arrows ── */
+  .arrow-down {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2px 0;
+    position: relative;
+    z-index: 2;
+  }
+  .arrow-down svg { display: block; }
+
+  /* ── connector row ── */
+  .connector-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 0 18px;
+    align-items: flex-start;
+  }
+  .connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+  }
+  .connector-line {
+    width: 2px;
+    background: #30363d;
+    flex: 1;
+    min-height: 20px;
+  }
+  .connector-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #30363d;
+    margin: 2px 0;
+  }
+
+  /* ── score weights bar ── */
+  .weights {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .weight-pill {
+    font-size: .65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+  .w-acc  { background:#0c2044; border-color:#1f6feb; color:#79c0ff; }
+  .w-con  { background:#1c0c2d; border-color:#8b5cf6; color:#d2a8ff; }
+  .w-saf  { background:#2d0c0c; border-color:#da3633; color:#ff7b72; }
+  .w-bia  { background:#2d1b06; border-color:#d29922; color:#e3b341; }
+  .w-cla  { background:#0c2626; border-color:#059669; color:#34d399; }
+  .w-com  { background:#0c2d1c; border-color:#238636; color:#56d364; }
+
+  /* ── data flow label ── */
+  .flow-label {
+    font-size: .65rem;
+    color: #6e7681;
+    text-align: center;
+    padding: 2px 0 4px;
+    letter-spacing: .04em;
+  }
+
+  /* ── legend ── */
+  .legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid #21262d;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .72rem;
+    color: #8b949e;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    border: 1px solid;
+    flex-shrink: 0;
+  }
+
+  /* ── fallback / note badges ── */
+  .note {
+    font-size: .65rem;
+    color: #6e7681;
+    background: #161b22;
+    border: 1px dashed #30363d;
+    border-radius: 6px;
+    padding: 2px 8px;
+    display: inline-block;
+    margin-top: 4px;
+  }
+
+  /* ── wide boxes ── */
+  .box-wide { flex: 1; }
+  .box-narrow { flex: 0 0 auto; }
+
+  /* arrow label */
+  .arr-label {
+    font-size: .62rem;
+    color: #6e7681;
+    margin: 0 6px;
+    white-space: nowrap;
+  }
+  .arr-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 3px 0;
+  }
+  .arr-line {
+    height: 2px;
+    background: #30363d;
+    flex: 1;
+    max-width: 80px;
+  }
+  .arr-head {
+    width: 0; height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 7px solid #30363d;
+  }
+  .arr-head-up {
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 7px solid #30363d;
+  }
+  .arr-vert {
+    width: 2px;
+    background: #30363d;
+    margin: 0 auto;
+  }
+</style>
+</head>
+<body>
+
+<h1>🔍 AI Reality Check</h1>
+<div class="subtitle">System Architecture — End-to-End Evaluation Pipeline</div>
+
+<div style="max-width:1060px;margin:0 auto;">
+
+  <!-- ── ROW 0: UI ── -->
+  <div style="border:1px solid #21262d;border-radius:12px;overflow:hidden;">
+
+    <!-- Layer: UI -->
+    <div style="display:flex;border-bottom:1px solid #21262d;">
+      <div class="layer-label" style="background:#0d1117;">UI Layer</div>
+      <div style="flex:1;padding:14px 18px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+
+          <div class="box blue box-wide">
+            <div class="box-title">
+              🖥 Streamlit Interface
+              <span class="box-tag">app.py</span>
+            </div>
+            <div class="box-sub">
+              Prompt input · Model selector · Temperature/tokens<br>
+              Stress Test mode · Side-by-side compare toggle<br>
+              <span class="note">session_state: is_evaluating · cancel_requested · history</span>
+            </div>
+          </div>
+
+          <div class="box blue">
+            <div class="box-title">📊 Dashboard
+              <span class="box-tag">pages/1_Dashboard.py</span>
+            </div>
+            <div class="box-sub">
+              Confidence trend · Score bars<br>
+              Model comparison · Issue heatmap<br>
+              <span class="note">reads session_state["history"]</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- arrow -->
+    <div class="arr-row" style="padding:4px 0;">
+      <div class="arr-vert" style="height:16px;"></div>
+    </div>
+    <div class="flow-label">prompt: str + model: str + temperature: float + max_tokens: int</div>
+    <div class="arr-row" style="padding:2px 0 4px;">
+      <div class="arr-head-up"></div>
+    </div>
+
+    <!-- Layer: LLM Backend -->
+    <div style="display:flex;border-top:1px solid #21262d;border-bottom:1px solid #21262d;">
+      <div class="layer-label" style="background:#0d1117;">LLM Backend</div>
+      <div style="flex:1;padding:14px 18px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+
+          <div class="box green box-narrow">
+            <div class="box-title">⚙ Backend Detection
+              <span class="box-tag">auto</span>
+            </div>
+            <div class="box-sub">
+              Priority order:<br>
+              1. OPENAI_API_KEY set<br>
+              2. Ollama reachable<br>
+              3. Demo / mock mode
+            </div>
+          </div>
+
+          <div class="box green box-wide">
+            <div class="box-title">🤖 Response Generator
+              <span class="box-tag">response_generator.py</span>
+            </div>
+            <div class="box-sub">
+              <b>Ollama</b> → POST /api/chat (Llama3, Mistral, Phi-3, Gemma2)<br>
+              <b>OpenAI</b> → POST /chat/completions (GPT-4o, GPT-3.5)<br>
+              <b>Demo</b>   → keyword-matched pre-written response<br>
+              <span class="note">LLM call #1 — response generation</span>
+            </div>
+          </div>
+
+          <div class="box green box-narrow">
+            <div class="box-title">✍ Critique Generator</div>
+            <div class="box-sub">
+              Same API, temp=0.3<br>
+              Used by Consistency<br>
+              &amp; Bias checkers<br>
+              <span class="note">LLM calls #2 · #3</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- arrow -->
+    <div class="arr-row" style="padding:4px 0;">
+      <div class="arr-vert" style="height:16px;"></div>
+    </div>
+    <div class="flow-label">response_text: str → passed to all 4 evaluation modules</div>
+    <div class="arr-row" style="padding:2px 0 4px;">
+      <div class="arr-head-up"></div>
+    </div>
+
+    <!-- Layer: Evaluation Engine -->
+    <div style="display:flex;border-top:1px solid #21262d;border-bottom:1px solid #21262d;">
+      <div class="layer-label" style="background:#0d1117;">Evaluation Engine</div>
+      <div style="flex:1;padding:14px 18px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+
+          <!-- Factual -->
+          <div class="box orange box-wide">
+            <div class="box-title">🔎 Factual Checker
+              <span class="box-tag">factual_checker.py</span>
+            </div>
+            <div class="box-sub">
+              extract_key_claims() → ≤8 factual sentences<br>
+              <b>Per claim — DuckDB first:</b><br>
+              &nbsp;&nbsp;keyword → LIKE query → word_overlap ≥0.40 → supported/contradicted<br>
+              <b>Fallback — Wikipedia:</b><br>
+              &nbsp;&nbsp;search API → extract → overlap ≥0.25<br>
+              Scoring: DB=1.00 · Wiki=0.90 · unverified=0.50<br>
+              contradiction penalty: −15pts each
+            </div>
+          </div>
+
+          <!-- Consistency -->
+          <div class="box purple box-wide">
+            <div class="box-title">⚖ Consistency Checker
+              <span class="box-tag">consistency_checker.py</span>
+            </div>
+            <div class="box-sub">
+              <b>Heuristic:</b> 6 contradiction regex patterns<br>
+              &nbsp;&nbsp;base 100 − (hits × 10), floor 50<br>
+              <b>LLM critique:</b> bullet filter with 3 guards<br>
+              &nbsp;&nbsp;① bullet marker  ② problem keyword<br>
+              &nbsp;&nbsp;③ no negation before keyword &amp; no "X: None"<br>
+              Final = 0.3×heuristic + 0.7×llm_score
+            </div>
+          </div>
+
+          <!-- Bias -->
+          <div class="box red box-wide">
+            <div class="box-title">🛡 Bias &amp; Safety Checker
+              <span class="box-tag">bias_safety_checker.py</span>
+            </div>
+            <div class="box-sub">
+              <b>6 bias rules</b> → −20pts each (demographic generalisations, slurs…)<br>
+              <b>6 safety rules</b> → −25pts each (weapons, self-harm, CSAM…)<br>
+              <b>LLM scan</b> → 0.4×rule + 0.6×llm blend (bias only)<br>
+              Safety score: rule-based only, never blended
+            </div>
+          </div>
+
+          <!-- Clarity -->
+          <div class="box teal box-wide">
+            <div class="box-title">✏ Clarity &amp; Completeness
+              <span class="box-tag">clarity_scorer.py</span>
+            </div>
+            <div class="box-sub">
+              <b>Completeness:</b> keyword overlap×130, capped 100<br>
+              &nbsp;&nbsp;flags: &lt;30 words · &gt;600 words · &lt;30% topic match<br>
+              <b>Clarity:</b> start 100<br>
+              &nbsp;&nbsp;avg sentence &gt;35w → −10<br>
+              &nbsp;&nbsp;vague qualifiers → −(count×4) max−20<br>
+              &nbsp;&nbsp;filler phrases → −(count×5) max−15<br>
+              Score = 0.6×completeness + 0.4×clarity
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- arrow -->
+    <div class="arr-row" style="padding:4px 0;">
+      <div class="arr-vert" style="height:16px;"></div>
+    </div>
+    <div class="flow-label">FactualCheckResult · ConsistencyResult · BiasResult · ClarityResult</div>
+    <div class="arr-row" style="padding:2px 0 4px;">
+      <div class="arr-head-up"></div>
+    </div>
+
+    <!-- Layer: Retrieval -->
+    <div style="display:flex;border-top:1px solid #21262d;border-bottom:1px solid #21262d;">
+      <div class="layer-label" style="background:#0d1117;">Retrieval</div>
+      <div style="flex:1;padding:14px 18px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+
+          <div class="box teal box-wide">
+            <div class="box-title">🗄 DuckDB Local Facts
+              <span class="box-tag">duckdb_retriever.py</span>
+            </div>
+            <div class="box-sub">
+              data/facts.db · table: facts(entity, attribute, value)<br>
+              57 seed rows — science, history, geography, tech, biology, literature<br>
+              LIKE queries on entity+value · word_overlap score · contradiction detection<br>
+              <span class="note">checked first — fast, offline, deterministic</span>
+            </div>
+          </div>
+
+          <div class="box blue box-wide">
+            <div class="box-title">🌐 Wikipedia API
+              <span class="box-tag">wikipedia_retriever.py</span>
+            </div>
+            <div class="box-sub">
+              en.wikipedia.org/w/api.php · @lru_cache(maxsize=256)<br>
+              Step 1: search API → best matching title<br>
+              Step 2: extract API → intro summary (5 sentences)<br>
+              Word overlap ≥0.25 → "supported" · else "unverified"<br>
+              <span class="note">fallback when DuckDB has no match</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- arrow -->
+    <div class="arr-row" style="padding:4px 0;">
+      <div class="arr-vert" style="height:16px;"></div>
+    </div>
+    <div class="flow-label">4 result objects → aggregate()</div>
+    <div class="arr-row" style="padding:2px 0 4px;">
+      <div class="arr-head-up"></div>
+    </div>
+
+    <!-- Layer: Scoring -->
+    <div style="display:flex;border-top:1px solid #21262d;">
+      <div class="layer-label" style="background:#0d1117;">Scoring</div>
+      <div style="flex:1;padding:14px 18px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+
+          <div class="box purple box-wide">
+            <div class="box-title">⚡ Scoring Engine
+              <span class="box-tag">scoring_engine.py</span>
+            </div>
+            <div class="box-sub">
+              confidence_score = weighted sum of 6 dimensions:
+              <div class="weights">
+                <span class="weight-pill w-acc">Accuracy 30%</span>
+                <span class="weight-pill w-con">Consistency 20%</span>
+                <span class="weight-pill w-saf">Safety 20%</span>
+                <span class="weight-pill w-bia">Bias 10%</span>
+                <span class="weight-pill w-cla">Clarity 10%</span>
+                <span class="weight-pill w-com">Completeness 10%</span>
+              </div>
+              Grade: A ≥90 · B ≥78 · C ≥65 · D ≥50 · F &lt;50<br>
+              Issues: [Consistency] + [Bias] + [Safety] + [Clarity] prefixed
+            </div>
+          </div>
+
+          <div class="box grey" style="min-width:200px;">
+            <div class="box-title">📦 EvaluationReport</div>
+            <div class="box-sub" style="font-size:.68rem;">
+              accuracy_score · consistency_score<br>
+              safety_score · bias_score<br>
+              clarity_score · completeness_score<br>
+              confidence_score · grade<br>
+              all_issues · factual_details<br>
+              critique_text · summaries<br>
+              <b>.to_json()</b> → export download
+            </div>
+          </div>
+
+          <div class="box grey" style="min-width:170px;">
+            <div class="box-title">💾 Session History</div>
+            <div class="box-sub" style="font-size:.68rem;">
+              In-memory list (session only)<br>
+              max 10 shown · newest first<br>
+              stores: prompt, response,<br>
+              report, model, ts, confidence<br>
+              <span class="note">lost on page refresh</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end main card -->
+
+  <!-- ── LEGEND ── -->
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#0c2044;border-color:#1f6feb;"></div> UI / LLM Backend
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#0c2d1c;border-color:#238636;"></div> LLM Response Generator
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#2d1b06;border-color:#d29922;"></div> Factual Checker
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#1c0c2d;border-color:#8b5cf6;"></div> Consistency / Scoring
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#2d0c0c;border-color:#da3633;"></div> Bias &amp; Safety
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#0c2626;border-color:#059669;"></div> Clarity / DuckDB
+    </div>
+    <div class="legend-item" style="margin-left:12px;">
+      <span style="font-size:.72rem;color:#6e7681;">LLM calls per evaluation (critique ON): <b style="color:#e3b341;">3</b> · compare mode ON: <b style="color:#e3b341;">6</b></span>
+    </div>
+  </div>
+
+</div><!-- end max-width wrapper -->
+</body>
+</html>

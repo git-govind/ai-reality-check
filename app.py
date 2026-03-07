@@ -50,6 +50,21 @@ st.markdown(
         background:#1d3557; color:#a8dadc; border-radius:6px;
         padding:2px 8px; font-size:0.72rem; margin-left:6px;
     }
+    .db-badge {
+        background:#1a3a2a; color:#4ade80; border-radius:6px;
+        padding:2px 8px; font-size:0.72rem; margin-left:6px;
+    }
+    .contradict-badge {
+        background:#3a1a1a; color:#f87171; border-radius:6px;
+        padding:2px 8px; font-size:0.72rem; margin-left:6px;
+    }
+    .db-evidence {
+        background:#111827; border:1px solid #374151; border-radius:8px;
+        padding:8px 12px; margin-top:4px; font-size:0.78rem; color:#9ca3af;
+    }
+    .db-evidence .ev-row { padding:2px 0; }
+    .db-evidence .ev-attr { color:#60a5fa; font-weight:600; margin-right:4px; }
+    .db-evidence .ev-val  { color:#d1fae5; }
     .step-row {
         display:flex; align-items:center; gap:10px;
         padding:6px 0; font-size:0.95rem;
@@ -59,6 +74,7 @@ st.markdown(
     .step-done   { color:#4ade80; }
     .step-active { color:#60a5fa; font-weight:600; }
     .step-wait   { color:#555; }
+    [data-testid="stAppDeployButton"] { display: none; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -182,8 +198,9 @@ with col_input:
     )
 with col_stress:
     if stress_mode:
+        st.markdown('<div style="height:1.9rem"></div>', unsafe_allow_html=True)
         st.button(
-            "🎲 Random\nStress Prompt",
+            "🎲 Stress Prompt",
             use_container_width=True,
             on_click=_inject_stress_prompt,
         )
@@ -280,19 +297,48 @@ def _render_report(report, model_name: str, response: str, prompt: str):
         with st.expander("🔎 Factual Claim Analysis", expanded=True):
             for item in report.factual_details:
                 verdict = item.get("verdict", "unknown")
-                icon = {"supported": "✅", "unverified": "⚠️", "no_source": "❓"}.get(verdict, "❓")
+                source  = item.get("source", "none")
+                icon = {
+                    "supported":   "✅",
+                    "unverified":  "⚠️",
+                    "no_source":   "❓",
+                    "contradicted":"🔴",
+                }.get(verdict, "❓")
+
                 col_a, col_b = st.columns([3, 2])
                 with col_a:
                     st.markdown(f"{icon} **Claim:** {item['claim']}")
+
                 with col_b:
-                    if item.get("wiki_title"):
+                    if source == "duckdb":
+                        quality = item.get("match_quality") or 0
+                        badge_cls = "contradict-badge" if verdict == "contradicted" else "db-badge"
+                        badge_label = "Contradicted · Local DB" if verdict == "contradicted" else f"Local DB · {quality:.0%} match"
+                        st.markdown(
+                            f'<span class="{badge_cls}">{badge_label}</span>',
+                            unsafe_allow_html=True,
+                        )
+                        evidence = item.get("duckdb_evidence") or []
+                        if evidence:
+                            rows_html = "".join(
+                                f'<div class="ev-row">'
+                                f'<span class="ev-attr">{e["entity"]} — {e["attribute"]}:</span>'
+                                f'<span class="ev-val">{e["value"]}</span>'
+                                f"</div>"
+                                for e in evidence[:3]
+                            )
+                            st.markdown(
+                                f'<div class="db-evidence">{rows_html}</div>',
+                                unsafe_allow_html=True,
+                            )
+                    elif item.get("wiki_title"):
                         st.markdown(
                             f"[{item['wiki_title']}]({item['wiki_url']})"
                             f' <span class="wiki-badge">Wikipedia</span>',
                             unsafe_allow_html=True,
                         )
                     else:
-                        st.caption("No Wikipedia source found")
+                        st.caption("No source found")
 
     # ── LLM critique ──
     if report.critique_text:
