@@ -21,7 +21,7 @@ LLM Response Engine                               Image Authenticator
   models/llm_registry.py                            │   EXIF · XMP · software · timestamps
        │                                            │
        ▼                                            ├── Pixel Forensics
-Evaluation Engine                                  │   ELA · JPEG Ghost · noise residual
+Evaluation Engine                                   │   ELA · JPEG Ghost · noise residual
   ├── Factual Checker (DuckDB + Wikipedia)          │   noise block consistency (16-block)
   ├── Consistency Checker (heuristic + LLM)         │   FFT spectral peaks · JPEG quant tables
   ├── Bias & Safety Checker (rules + LLM)           │
