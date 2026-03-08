@@ -13,11 +13,28 @@ Techniques
       the pixel-level difference.  Authentic regions re-compress uniformly;
       spliced or heavily edited regions retain higher residual error.
 
+  JPEG Ghost Analysis
+      Re-compresses the image at multiple quality levels [50, 60, 70, 80, 90].
+      For each 32×32 patch, detects which quality level produces the minimum
+      residual — the patch's 'native' compression quality.  An unmodified image
+      has one dominant native quality; spliced images have patches with different
+      native qualities.  Measured as normalised Shannon entropy of the quality-
+      index distribution across patches (0 = uniform / pristine, 100 = maximally
+      inconsistent / edited).
+
   Noise Residual Analysis
       Subtracts a Gaussian-blurred version to isolate sensor noise.
       Real camera images have characteristic wide-band noise with quasi-
       Gaussian statistics.  AI-generated images are often unnaturally smooth
       (very low noise) or have spatially correlated noise patterns.
+
+  Noise Pattern Consistency  (16-block)
+      Divides the Gaussian residual into a 4×4 grid of 16 equal-area blocks.
+      Computes std of residual within each block then measures the coefficient
+      of variation (CV) across the 16 values.  Real cameras: sensor noise is
+      spatially stationary (PRNU is deterministic) → low CV.  AI generators:
+      smooth regions have near-zero residual, textured regions have high residual
+      → high CV.  Contributes 40% of the combined noise badness signal.
 
   Frequency-Domain (FFT) Artifact Scan
       Computes the 2-D power spectrum.  Periodic grid artefacts (common in
@@ -29,10 +46,12 @@ Techniques
 
 Scoring formula (spec §2)
 -------------------------
-  pixel_score = 100 − (ela_score × 0.40 + noise_score × 0.30 + fft_score × 0.30)
+  pixel_score = 100 − (ela_score × 0.30 + ghost_score × 0.20
+                        + noise_score × 0.25 + fft_score × 0.25)
 
   Each sub-score is a "badness" value in [0, 100]:
     ela_score   = min(100, ela_p95 / 30 × 100)
+    ghost_score = normalised Shannon entropy of quality-index distribution × 100
     noise_score = composite of low-std (< 2.0) and high-CV (> 0.60) badness
     fft_score   = min(100, norm_peak_ratio / 0.25 × 100)
 
@@ -54,18 +73,27 @@ from PIL import Image
 
 from .datatypes import PixelForensicsResult
 
+from config_loader import get_threshold, get_weight
+from utils.image_utils import coeff_of_variation, jpeg_recompress, load_image_rgb
+
 
 # ---------------------------------------------------------------------------
-# Constants
+# Constants  (loaded from config/thresholds.yaml and config/weights.yaml)
 # ---------------------------------------------------------------------------
 
+_ELA_HIGH_THRESHOLD  = get_threshold("image.ela_p95_norm_cap")        # 30.0
+_ELA_MED_THRESHOLD   = 15.0     # informational threshold (not configurable)
+_NOISE_CV_HIGH       = get_threshold("image.noise.high_cv_threshold")  # 0.60
+_NOISE_STD_LOW       = get_threshold("image.noise.low_std_threshold")  # 2.0
+_FFT_PEAK_HIGH       = get_threshold("image.fft_norm_cap")             # 0.25
+_NOISE_BLOCK_CV_HIGH = get_threshold("image.noise.block_cv_high")      # 0.45
 _ELA_QUALITY         = 75       # JPEG quality for re-compression in ELA
-_ELA_HIGH_THRESHOLD  = 30.0     # 95th-pct diff → strong manipulation signal
-_ELA_MED_THRESHOLD   = 15.0     # 95th-pct diff → moderate signal
-_NOISE_CV_HIGH       = 0.60     # coefficient of variation → unusual uniformity
-_NOISE_STD_LOW       = 2.0      # std below this → suspiciously smooth
-_FFT_PEAK_HIGH       = 0.25     # peak / mean power ratio → periodic artefacts
 _PATCH_SIZE          = 32       # patch size for local noise estimation
+
+_GHOST_QUALITIES     = [50, 60, 70, 80, 90]   # quality levels to probe for JPEG Ghost
+_GHOST_PATCH         = 32                      # patch size in pixels for ghost analysis
+
+_N_BLOCKS            = 4                       # 4×4 = 16 blocks for noise consistency
 
 
 # ---------------------------------------------------------------------------
@@ -85,11 +113,8 @@ def _ela(img_rgb: np.ndarray, quality: int = _ELA_QUALITY) -> np.ndarray:
     -------
     np.ndarray, shape (H, W, 3), dtype float32
     """
-    pil = Image.fromarray(img_rgb.astype(np.uint8))
-    buf = io.BytesIO()
-    pil.save(buf, format="JPEG", quality=quality)
-    buf.seek(0)
-    recomp = np.array(Image.open(buf).convert("RGB"), dtype=np.float32)
+    pil    = Image.fromarray(img_rgb.astype(np.uint8))
+    recomp = jpeg_recompress(pil, quality)
     return np.abs(img_rgb.astype(np.float32) - recomp)
 
 
@@ -155,7 +180,7 @@ def _run_noise_analysis(img_gray: np.ndarray) -> Tuple[float, float, List[str]]:
 
         std_arr = np.array(stds, dtype=np.float32)
         mean_std = float(np.mean(std_arr))
-        cv       = float(np.std(std_arr) / (mean_std + 1e-6))  # coeff of variation
+        cv       = coeff_of_variation(std_arr)            # coeff of variation
 
         flags: List[str] = []
         if mean_std < _NOISE_STD_LOW:
@@ -173,6 +198,75 @@ def _run_noise_analysis(img_gray: np.ndarray) -> Tuple[float, float, List[str]]:
 
     except Exception as exc:
         return 0.0, 0.0, [f"Noise analysis skipped: {exc}"]
+
+
+# ---------------------------------------------------------------------------
+# Noise Pattern Consistency  (16-block macro-level check)
+# ---------------------------------------------------------------------------
+
+def _run_noise_consistency(img_gray: np.ndarray) -> Tuple[float, float, List[str]]:
+    """
+    Sensor noise consistency check across a 4×4 grid of 16 equal-area blocks.
+
+    Algorithm
+    ---------
+    1. Compute the full-image Gaussian residual (one blur pass, not per-block).
+    2. Divide the residual into 16 equal-area blocks using numpy reshape trick.
+    3. For each block compute the std of residual values → 16 noise-level estimates.
+    4. Compute the coefficient of variation (CV = std / mean) of those 16 estimates.
+
+    Physical basis
+    --------------
+    Real camera sensors exhibit spatially stationary thermal / shot / read noise
+    (PRNU is deterministic and smooth, not random).  Diffusion / GAN models
+    synthesise textures region-by-region with independent noise statistics — smooth
+    faces get near-zero residual, hair / foliage get high residual — producing a
+    systematic spatial variation that real sensors do not.
+
+    Returns
+    -------
+    (block_var, block_cv, flags)
+        block_var – variance of the 16 block noise stds (raw, squared units)
+        block_cv  – CV of the 16 block noise stds (normalised, key discriminator)
+        flags     – human-readable anomaly descriptions
+    """
+    try:
+        blurred  = _gaussian_blur_numpy(img_gray[:, :, np.newaxis], sigma=1.5)[:, :, 0]
+        residual = img_gray.astype(np.float32) - blurred
+
+        H, W = residual.shape
+        bh = H // _N_BLOCKS   # block height (pixels)
+        bw = W // _N_BLOCKS   # block width  (pixels)
+
+        if bh < 16 or bw < 16:
+            return 0.0, 0.0, []   # image too small for 16-block analysis
+
+        # ── Reshape into (N, bh, N, bw) — vectorised, no per-block loops ────
+        # Element [i, j, k, l] maps to residual pixel at (i*bh+j, k*bw+l),
+        # so std over axes (1, 3) gives the noise std for block (i, k).
+        cropped = residual[: _N_BLOCKS * bh, : _N_BLOCKS * bw]
+        blocks  = cropped.reshape(_N_BLOCKS, bh, _N_BLOCKS, bw)
+
+        # block_stds shape: (N, N) → 16 values
+        block_stds = np.std(blocks, axis=(1, 3))
+        flat_stds  = block_stds.ravel().astype(np.float64)
+
+        mean_std  = float(np.mean(flat_stds))
+        block_var = float(np.var(flat_stds))
+        block_cv  = coeff_of_variation(flat_stds)
+
+        flags: List[str] = []
+        if block_cv > _NOISE_BLOCK_CV_HIGH:
+            flags.append(
+                f"Noise consistency: high variance across 16 blocks "
+                f"(CV={block_cv:.2f}, var={block_var:.2f}) — "
+                "spatially inconsistent sensor noise (AI synthesis or heavy editing)"
+            )
+
+        return block_var, block_cv, flags
+
+    except Exception as exc:
+        return 0.0, 0.0, [f"Noise consistency skipped: {exc}"]
 
 
 # ---------------------------------------------------------------------------
@@ -219,6 +313,95 @@ def _run_fft(img_gray: np.ndarray) -> Tuple[float, List[str]]:
 
     except Exception as exc:
         return 0.0, [f"FFT analysis skipped: {exc}"]
+
+
+# ---------------------------------------------------------------------------
+# JPEG Ghost Analysis
+# ---------------------------------------------------------------------------
+
+def _run_jpeg_ghost(img_rgb: np.ndarray) -> Tuple[float, float, List[str]]:
+    """
+    JPEG Ghost analysis (Farid 2009 — multi-quality residual inconsistency).
+
+    Algorithm
+    ---------
+    1. Re-compress the image at each quality level in ``_GHOST_QUALITIES``.
+    2. For every non-overlapping 32×32 patch, record which quality level
+       produces the minimum mean absolute residual — the patch's inferred
+       'native' compression quality.
+    3. Build a histogram of native-quality indices across all patches.
+    4. Compute normalised Shannon entropy of that histogram:
+         0   — all patches share one quality level  → pristine / unedited
+         100 — patches spread across all levels     → heavy editing / splicing
+    5. Also compute the spatial coefficient-of-variation of residuals at the
+       dominant quality level; high spatial CV reinforces the editing signal.
+
+    Returns
+    -------
+    (ghost_score, spatial_cv, flags)
+        ghost_score  – [0, 100]   badness value (0 = clean, 100 = edited)
+        spatial_cv   – [0, ∞)    spatial residual variation at dominant quality
+        flags        – human-readable anomaly descriptions
+    """
+    try:
+        pil_img       = Image.fromarray(img_rgb.astype(np.uint8))
+        orig_gray     = np.mean(img_rgb, axis=2).astype(np.float32)
+        H, W          = orig_gray.shape
+        n_q           = len(_GHOST_QUALITIES)
+
+        # ── Residual map for every quality level ─────────────────────────────
+        residual_maps: List[np.ndarray] = []
+        for q in _GHOST_QUALITIES:
+            recomp_gray = np.mean(jpeg_recompress(pil_img, q), axis=2)
+            residual_maps.append(np.abs(orig_gray - recomp_gray))
+
+        # ── Vectorised per-patch mean using reshape trick ─────────────────────
+        ph = H // _GHOST_PATCH   # number of full patches along H
+        pw = W // _GHOST_PATCH   # number of full patches along W
+        if ph < 2 or pw < 2:
+            return 0.0, 0.0, []   # image too small for meaningful analysis
+
+        # patch_residuals: (n_q, ph, pw)
+        patch_residuals = np.stack([
+            rmap[:ph * _GHOST_PATCH, :pw * _GHOST_PATCH]
+            .reshape(ph, _GHOST_PATCH, pw, _GHOST_PATCH)
+            .mean(axis=(1, 3))
+            for rmap in residual_maps
+        ], axis=0)
+
+        # ── Quality-index distribution ────────────────────────────────────────
+        min_q_map = np.argmin(patch_residuals, axis=0)          # (ph, pw)
+        counts    = np.bincount(min_q_map.ravel(), minlength=n_q).astype(np.float64)
+        probs     = counts / (counts.sum() + 1e-10)
+
+        # ── Normalised Shannon entropy ─────────────────────────────────────────
+        nz        = probs[probs > 0]
+        entropy   = float(-np.sum(nz * np.log(nz)))
+        max_ent   = float(np.log(n_q))
+        ghost_score = float(np.clip(entropy / (max_ent + 1e-10) * 100.0, 0.0, 100.0))
+
+        # ── Spatial CV at dominant quality level ──────────────────────────────
+        dom_qi     = int(np.argmax(counts))
+        dom_pats   = patch_residuals[dom_qi]                     # (ph, pw)
+        spatial_cv = coeff_of_variation(dom_pats)
+
+        flags: List[str] = []
+        if ghost_score > 70:
+            flags.append(
+                f"JPEG Ghost: high quality-entropy ({ghost_score:.1f}/100, "
+                f"spatial CV={spatial_cv:.2f}) — "
+                "regions have inconsistent compression history (splicing/composite)"
+            )
+        elif ghost_score > 40:
+            flags.append(
+                f"JPEG Ghost: moderate inconsistency ({ghost_score:.1f}/100, "
+                f"spatial CV={spatial_cv:.2f}) — possible editing artefacts"
+            )
+
+        return ghost_score, spatial_cv, flags
+
+    except Exception as exc:
+        return 0.0, 0.0, [f"JPEG Ghost skipped: {exc}"]
 
 
 # ---------------------------------------------------------------------------
@@ -343,6 +526,64 @@ def _fft_badness(norm_ratio: float) -> float:
     return float(min(100.0, norm_ratio / _FFT_PEAK_HIGH * 100.0))
 
 
+def _ghost_badness(ghost_score: float) -> float:
+    """
+    Ghost score is already a [0, 100] badness value (pass-through with clamp).
+    0 = all patches agree on one native quality (pristine).
+    100 = patches maximally disagree (heavily edited / spliced).
+    """
+    return float(np.clip(ghost_score, 0.0, 100.0))
+
+
+def _noise_consistency_badness(block_cv: float) -> float:
+    """
+    Map block-level noise CV to a badness score [0, 100].
+
+    Threshold anchors (empirical):
+      CV < 0.15  → sensor-uniform (real camera) → 0
+      CV ≥ 0.55  → spatially inconsistent (AI / composite) → 100
+    Linear interpolation between the two anchors.
+    """
+    return float(np.clip((block_cv - 0.15) / 0.40 * 100.0, 0.0, 100.0))
+
+
+# ---------------------------------------------------------------------------
+# Confidence band estimation
+# ---------------------------------------------------------------------------
+
+def _compute_pixel_band(fmt: str, width: int, height: int) -> float:
+    """
+    Estimate ± uncertainty on the pixel forensics score as a fraction of [0, 1].
+
+    Reliability depends on image format and pixel count.
+
+    Format influence
+    ----------------
+    JPEG  – ELA + JPEG Ghost both meaningful → narrow base band (0.12)
+    PNG   – lossless: ELA produces artifactual residual; Ghost is meaningless → 0.20
+    Other – intermediate (0.17)
+
+    Size influence
+    --------------
+    < 256×256  – too few patches for statistical confidence → + 0.10
+    < 512×512  – borderline → + 0.05
+    """
+    upper = fmt.upper()
+    if upper in {"JPEG", "JPG"}:
+        base = get_threshold("image.pixel_band.jpeg")
+    elif upper == "PNG":
+        base = get_threshold("image.pixel_band.png")
+    else:
+        base = get_threshold("image.pixel_band.other")
+
+    if width * height < get_threshold("image.pixel_band.tiny_area"):
+        base += get_threshold("image.pixel_band.tiny_image_penalty")
+    elif width * height < get_threshold("image.pixel_band.small_area"):
+        base += get_threshold("image.pixel_band.small_image_penalty")
+
+    return min(base, 0.30)
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -361,7 +602,9 @@ def run(image_bytes: bytes) -> PixelForensicsResult:
     PixelForensicsResult
     """
     try:
-        img      = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        raw_img  = Image.open(io.BytesIO(image_bytes))
+        img_fmt  = raw_img.format or ""          # capture before convert() clears it
+        img      = raw_img.convert("RGB")
         img_rgb  = np.array(img, dtype=np.float32)
         img_gray = np.mean(img_rgb, axis=2)
     except Exception as exc:
@@ -376,25 +619,43 @@ def run(image_bytes: bytes) -> PixelForensicsResult:
     ela_p95, ela_flags = _run_ela(img_rgb)
     all_flags.extend(ela_flags)
 
-    # ── Noise ───────────────────────────────────────────────────────────────
+    # ── Noise (patch-level) ──────────────────────────────────────────────────
     noise_std, noise_cv, noise_flags = _run_noise_analysis(img_gray)
     all_flags.extend(noise_flags)
+
+    # ── Noise consistency (16-block macro-level) ─────────────────────────────
+    block_var, block_cv, consist_flags = _run_noise_consistency(img_gray)
+    all_flags.extend(consist_flags)
 
     # ── FFT ─────────────────────────────────────────────────────────────────
     fft_ratio, fft_flags = _run_fft(img_gray)
     all_flags.extend(fft_flags)
 
+    # ── JPEG Ghost ───────────────────────────────────────────────────────────
+    ghost_score, ghost_cv, ghost_flags = _run_jpeg_ghost(img_rgb)
+    all_flags.extend(ghost_flags)
+
     # ── JPEG quant ──────────────────────────────────────────────────────────
     quant_suspicious, quant_flags = _run_quant_check(image_bytes)
     all_flags.extend(quant_flags)
 
-    # ── Exact spec formula:
-    #    pixel_score = 100 − (ela_score × 0.40 + noise_score × 0.30 + fft_score × 0.30)
-    ela_bad   = _ela_badness(ela_p95)
-    noise_bad = _noise_badness(noise_std, noise_cv)
-    fft_bad   = _fft_badness(fft_ratio)
+    # ── Scoring formula:
+    #    pixel_score = 100 − (ela × 0.30 + ghost × 0.20 + noise × 0.25 + fft × 0.25)
+    #    noise = 60% patch-level badness + 40% 16-block consistency badness
+    ela_bad         = _ela_badness(ela_p95)
+    ghost_bad       = _ghost_badness(ghost_score)
+    patch_noise_bad = _noise_badness(noise_std, noise_cv)
+    consist_bad     = _noise_consistency_badness(block_cv)
+    noise_bad       = (get_weight("image.pixel_formula.noise_patch") * patch_noise_bad
+                       + get_weight("image.pixel_formula.noise_block") * consist_bad)
+    fft_bad         = _fft_badness(fft_ratio)
 
-    pixel_score_100 = 100.0 - (ela_bad * 0.40 + noise_bad * 0.30 + fft_bad * 0.30)
+    pixel_score_100 = 100.0 - (
+        ela_bad   * get_weight("image.pixel_formula.ela")   +
+        ghost_bad * get_weight("image.pixel_formula.ghost") +
+        noise_bad * get_weight("image.pixel_formula.noise") +
+        fft_bad   * get_weight("image.pixel_formula.fft")
+    )
 
     # JPEG quant anomaly: extra −5 (informational; outside weighted formula)
     if quant_suspicious:
@@ -403,9 +664,12 @@ def run(image_bytes: bytes) -> PixelForensicsResult:
     score = max(0.0, min(100.0, pixel_score_100)) / 100.0
 
     return PixelForensicsResult(
-        score            = score,
-        artifacts        = all_flags,
-        ela_max_diff     = ela_p95,
-        fft_peak_ratio   = fft_ratio,
-        noise_uniformity = noise_cv,
+        score                   = score,
+        artifacts               = all_flags,
+        ela_max_diff            = ela_p95,
+        fft_peak_ratio          = fft_ratio,
+        noise_uniformity        = noise_cv,
+        ghost_score             = ghost_score,
+        noise_block_consistency = block_cv,
+        confidence_band         = _compute_pixel_band(img_fmt, img.width, img.height),
     )

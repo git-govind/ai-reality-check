@@ -32,52 +32,6 @@
     letter-spacing: .04em;
   }
 
-  /* ── layout grid ── */
-  .grid {
-    display: grid;
-    grid-template-columns: 200px 1fr 200px;
-    grid-template-rows: auto auto auto auto auto;
-    gap: 0;
-    max-width: 1060px;
-    margin: 0 auto;
-    position: relative;
-  }
-
-  /* ── layer bands ── */
-  .layer {
-    display: contents;
-  }
-  .layer-label {
-    writing-mode: vertical-lr;
-    transform: rotate(180deg);
-    font-size: .65rem;
-    font-weight: 700;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: #6e7681;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 4px;
-    border-right: 1px solid #21262d;
-  }
-  .layer-right {
-    border-right: none;
-    border-left: 1px solid #21262d;
-  }
-
-  /* ── row containers ── */
-  .row {
-    display: flex;
-    align-items: stretch;
-    justify-content: center;
-    gap: 12px;
-    padding: 14px 18px;
-    border-bottom: 1px solid #21262d;
-    position: relative;
-  }
-  .row:last-child { border-bottom: none; }
-
   /* ── boxes ── */
   .box {
     border-radius: 10px;
@@ -147,50 +101,19 @@
   .indigo .box-title { color:#a5b4fc; }
   .indigo .box-tag   { background:#1a1840; color:#a5b4fc; }
 
+  .cyan   { background:#0c2233; border-color:#22d3ee; }
+  .cyan   .box-title { color:#67e8f9; }
+  .cyan   .box-tag   { background:#0f2d3d; color:#67e8f9; }
+
+  .amber  { background:#2d1e06; border-color:#f59e0b; }
+  .amber  .box-title { color:#fcd34d; }
+  .amber  .box-tag   { background:#3d2b0a; color:#fcd34d; }
+
   .w-meta { background:#0f0c2d; border-color:#6366f1; color:#a5b4fc; }
   .w-pix  { background:#0c2626; border-color:#059669; color:#34d399; }
   .w-ai   { background:#1c0c2d; border-color:#8b5cf6; color:#d2a8ff; }
   .w-con2 { background:#2d1b06; border-color:#d29922; color:#e3b341; }
   .w-rev  { background:#0c2044; border-color:#1f6feb; color:#79c0ff; }
-
-  /* ── arrows ── */
-  .arrow-down {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 2px 0;
-    position: relative;
-    z-index: 2;
-  }
-  .arrow-down svg { display: block; }
-
-  /* ── connector row ── */
-  .connector-row {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    padding: 0 18px;
-    align-items: flex-start;
-  }
-  .connector {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex: 1;
-  }
-  .connector-line {
-    width: 2px;
-    background: #30363d;
-    flex: 1;
-    min-height: 20px;
-  }
-  .connector-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: #30363d;
-    margin: 2px 0;
-  }
 
   /* ── score weights bar ── */
   .weights {
@@ -213,7 +136,7 @@
   .w-cla  { background:#0c2626; border-color:#059669; color:#34d399; }
   .w-com  { background:#0c2d1c; border-color:#238636; color:#56d364; }
 
-  /* ── data flow label ── */
+  /* ── flow arrows ── */
   .flow-label {
     font-size: .65rem;
     color: #6e7681;
@@ -221,6 +144,86 @@
     padding: 2px 0 4px;
     letter-spacing: .04em;
   }
+  .arr-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 3px 0;
+  }
+  .arr-vert {
+    width: 2px;
+    background: #30363d;
+    margin: 0 auto;
+  }
+  .arr-head-up {
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 7px solid #30363d;
+  }
+
+  /* ── layer labels ── */
+  .layer-label {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #6e7681;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px;
+    border-right: 1px solid #21262d;
+  }
+
+  /* ── note badges ── */
+  .note {
+    font-size: .65rem;
+    color: #6e7681;
+    background: #161b22;
+    border: 1px dashed #30363d;
+    border-radius: 6px;
+    padding: 2px 8px;
+    display: inline-block;
+    margin-top: 4px;
+  }
+  .util-ref {
+    font-size: .62rem;
+    color: #34d399;
+    background: #0c2626;
+    border: 1px solid #059669;
+    border-radius: 4px;
+    padding: 1px 6px;
+    display: inline-block;
+    margin-top: 3px;
+  }
+  .model-ref {
+    font-size: .62rem;
+    color: #d2a8ff;
+    background: #1c0c2d;
+    border: 1px solid #8b5cf6;
+    border-radius: 4px;
+    padding: 1px 6px;
+    display: inline-block;
+    margin-top: 3px;
+  }
+  .config-ref {
+    font-size: .62rem;
+    color: #56d364;
+    background: #0c2d1c;
+    border: 1px solid #238636;
+    border-radius: 4px;
+    padding: 1px 6px;
+    display: inline-block;
+    margin-top: 3px;
+  }
+
+  /* ── box sizing helpers ── */
+  .box-wide   { flex: 1; }
+  .box-narrow { flex: 0 0 auto; }
 
   /* ── legend ── */
   .legend {
@@ -246,67 +249,12 @@
     flex-shrink: 0;
   }
 
-  /* ── fallback / note badges ── */
-  .note {
-    font-size: .65rem;
-    color: #6e7681;
-    background: #161b22;
-    border: 1px dashed #30363d;
-    border-radius: 6px;
-    padding: 2px 8px;
-    display: inline-block;
-    margin-top: 4px;
-  }
-
-  /* ── wide boxes ── */
-  .box-wide { flex: 1; }
-  .box-narrow { flex: 0 0 auto; }
-
-  /* arrow label */
-  .arr-label {
-    font-size: .62rem;
-    color: #6e7681;
-    margin: 0 6px;
-    white-space: nowrap;
-  }
-  .arr-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-    padding: 3px 0;
-  }
-  .arr-line {
-    height: 2px;
-    background: #30363d;
-    flex: 1;
-    max-width: 80px;
-  }
-  .arr-head {
-    width: 0; height: 0;
-    border-top: 4px solid transparent;
-    border-bottom: 4px solid transparent;
-    border-left: 7px solid #30363d;
-  }
-  .arr-head-up {
-    width: 0; height: 0;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-bottom: 7px solid #30363d;
-  }
-  .arr-vert {
-    width: 2px;
-    background: #30363d;
-    margin: 0 auto;
-  }
-
   /* ── tabs ── */
   .tab-nav {
     display: flex;
     gap: 4px;
     border-bottom: 1px solid #21262d;
     margin-bottom: 20px;
-    padding-bottom: 0;
   }
   .tab-btn {
     background: transparent;
@@ -332,12 +280,20 @@
   }
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
+
+  /* ── infra grid ── */
+  .infra-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 700px) { .infra-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 
 <h1>🔍 AI Reality Check</h1>
-<div class="subtitle">System Architecture</div>
+<div class="subtitle">System Architecture — v2</div>
 
 <div style="max-width:90%;margin:0 auto;">
 
@@ -345,9 +301,12 @@
   <div class="tab-nav">
     <button class="tab-btn active" onclick="switchTab(this,'text')">📝 Text Evaluation Pipeline</button>
     <button class="tab-btn"        onclick="switchTab(this,'image')">🖼️ Image Evaluation Pipeline</button>
+    <button class="tab-btn"        onclick="switchTab(this,'infra')">🏗 Shared Infrastructure</button>
   </div>
 
-  <!-- ══ TEXT PIPELINE TAB ══ -->
+  <!-- ══════════════════════════════════════════════════════
+       TAB 1 — TEXT PIPELINE
+  ══════════════════════════════════════════════════════ -->
   <div id="tab-text" class="tab-panel active">
 
   <div style="font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
@@ -355,7 +314,6 @@
     📝 Text Evaluation Pipeline — app.py + src/
   </div>
 
-  <!-- ── ROW 0: UI ── -->
   <div style="border:1px solid #21262d;border-radius:12px;overflow:hidden;">
 
     <!-- Layer: UI -->
@@ -371,9 +329,9 @@
             </div>
             <div class="box-sub">
               st.navigation + st.Page<br>
-              Controls sidebar order<br>
-              &amp; page labels<br>
-              <span class="note">entry-point: streamlit run app.py</span>
+              Controls sidebar order &amp; page labels<br>
+              <span class="note">entry-point: streamlit run app.py</span><br>
+              <span class="note">sys.path.insert(0, ROOT) — ensures utils/ models/ config/ resolvable</span>
             </div>
           </div>
 
@@ -384,9 +342,10 @@
             <div class="box-sub">
               <b>📝 Text Evaluations tab</b><br>
               Confidence trend · Score bars · Model compare<br>
+              Issue frequency heatmap · Raw data table (1-based index)<br>
               <b>🖼 Image Evaluations tab</b><br>
-              Authenticity trend · Grade distribution<br>
-              Flag frequency · Most suspicious images<br>
+              Authenticity trend · Grade distribution · Flag frequency<br>
+              Most suspicious images · Raw data table (1-based index)<br>
               <span class="note">reads session_state["history"] + ["img_history"]</span>
             </div>
           </div>
@@ -399,20 +358,8 @@
             <div class="box-sub">
               Prompt input · Model selector · Temperature/tokens<br>
               Stress Test mode · Side-by-side compare toggle<br>
+              <span class="util-ref">utils.scoring_utils.score_to_color</span><br>
               <span class="note">session_state: is_evaluating · cancel_requested · history</span>
-            </div>
-          </div>
-
-          <div class="box indigo">
-            <div class="box-title">
-              🖼 Image Evaluator
-              <span class="box-tag">pages/3_Image_Evaluator.py</span>
-            </div>
-            <div class="box-sub">
-              Image upload · Optional caption<br>
-              5-step progress display · Evidence tabs<br>
-              Authenticity grade · AI/editing likelihood<br>
-              <span class="note">session_state: img_evaluating · img_report · img_history</span>
             </div>
           </div>
 
@@ -421,13 +368,9 @@
     </div>
 
     <!-- arrow -->
-    <div class="arr-row" style="padding:4px 0;">
-      <div class="arr-vert" style="height:16px;"></div>
-    </div>
+    <div class="arr-row" style="padding:4px 0;"><div class="arr-vert" style="height:16px;"></div></div>
     <div class="flow-label">prompt: str + model: str + temperature: float + max_tokens: int</div>
-    <div class="arr-row" style="padding:2px 0 4px;">
-      <div class="arr-head-up"></div>
-    </div>
+    <div class="arr-row" style="padding:2px 0 4px;"><div class="arr-head-up"></div></div>
 
     <!-- Layer: LLM Backend -->
     <div style="display:flex;border-top:1px solid #21262d;border-bottom:1px solid #21262d;">
@@ -455,6 +398,7 @@
               <b>Ollama</b> → POST /api/chat (Llama3, Mistral, Phi-3, Gemma2)<br>
               <b>OpenAI</b> → POST /chat/completions (GPT-4o, GPT-3.5)<br>
               <b>Demo</b>   → keyword-matched pre-written response<br>
+              <span class="model-ref">models/llm_registry.py</span><br>
               <span class="note">LLM call #1 — response generation</span>
             </div>
           </div>
@@ -474,13 +418,34 @@
     </div>
 
     <!-- arrow -->
-    <div class="arr-row" style="padding:4px 0;">
-      <div class="arr-vert" style="height:16px;"></div>
+    <div class="arr-row" style="padding:4px 0;"><div class="arr-vert" style="height:16px;"></div></div>
+    <div class="flow-label">response_text: str → passed to pipeline.py orchestrator → 4 evaluation modules</div>
+    <div class="arr-row" style="padding:2px 0 4px;"><div class="arr-head-up"></div></div>
+
+    <!-- Layer: Orchestration -->
+    <div style="display:flex;border-top:1px solid #21262d;border-bottom:1px solid #21262d;">
+      <div class="layer-label" style="background:#0d1117;">Orchestration</div>
+      <div style="flex:1;padding:14px 18px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div class="box cyan box-wide">
+            <div class="box-title">🔄 Pipeline Orchestrator
+              <span class="box-tag">src/utils/pipeline.py</span>
+            </div>
+            <div class="box-sub">
+              evaluate(prompt, ai_response, model_display_name, run_llm_critique)<br>
+              Runs 4 checkers sequentially · aggregates → EvaluationReport<br>
+              profiler.reset() on entry · report.metadata["timings"] on exit<br>
+              <span class="util-ref">utils.logging_utils.timer(label) — context manager wrapping each step</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- arrow -->
+    <div class="arr-row" style="padding:4px 0;"><div class="arr-vert" style="height:16px;"></div></div>
     <div class="flow-label">response_text: str → passed to all 4 evaluation modules</div>
-    <div class="arr-row" style="padding:2px 0 4px;">
-      <div class="arr-head-up"></div>
-    </div>
+    <div class="arr-row" style="padding:2px 0 4px;"><div class="arr-head-up"></div></div>
 
     <!-- Layer: Evaluation Engine -->
     <div style="display:flex;border-top:1px solid #21262d;border-bottom:1px solid #21262d;">
@@ -488,7 +453,6 @@
       <div style="flex:1;padding:14px 18px;">
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
 
-          <!-- Factual -->
           <div class="box orange box-wide">
             <div class="box-title">🔎 Factual Checker
               <span class="box-tag">factual_checker.py</span>
@@ -500,11 +464,11 @@
               <b>Fallback — Wikipedia:</b><br>
               &nbsp;&nbsp;search API → extract → overlap ≥0.25<br>
               Scoring: DB=1.00 · Wiki=0.90 · unverified=0.50<br>
-              contradiction penalty: −15pts each
+              contradiction penalty: −15pts each<br>
+              <span class="util-ref">utils.text_utils.word_overlap</span>
             </div>
           </div>
 
-          <!-- Consistency -->
           <div class="box purple box-wide">
             <div class="box-title">⚖ Consistency Checker
               <span class="box-tag">consistency_checker.py</span>
@@ -515,11 +479,12 @@
               <b>LLM critique:</b> bullet filter with 3 guards<br>
               &nbsp;&nbsp;① bullet marker  ② problem keyword<br>
               &nbsp;&nbsp;③ no negation before keyword &amp; no "X: None"<br>
-              Final = 0.3×heuristic + 0.7×llm_score
+              Final = 0.3×heuristic + 0.7×llm_score<br>
+              <span class="util-ref">utils.text_utils.extract_issue_bullets · parse_llm_score</span>
+              <span class="model-ref">models/llm_registry.py</span>
             </div>
           </div>
 
-          <!-- Bias -->
           <div class="box red box-wide">
             <div class="box-title">🛡 Bias &amp; Safety Checker
               <span class="box-tag">bias_safety_checker.py</span>
@@ -528,11 +493,12 @@
               <b>6 bias rules</b> → −20pts each (demographic generalisations, slurs…)<br>
               <b>6 safety rules</b> → −25pts each (weapons, self-harm, CSAM…)<br>
               <b>LLM scan</b> → 0.4×rule + 0.6×llm blend (bias only)<br>
-              Safety score: rule-based only, never blended
+              Safety score: rule-based only, never blended<br>
+              <span class="util-ref">utils.text_utils.extract_issue_bullets · parse_llm_score</span>
+              <span class="model-ref">models/llm_registry.py</span>
             </div>
           </div>
 
-          <!-- Clarity -->
           <div class="box teal box-wide">
             <div class="box-title">✏ Clarity &amp; Completeness
               <span class="box-tag">clarity_scorer.py</span>
@@ -544,7 +510,8 @@
               &nbsp;&nbsp;avg sentence &gt;35w → −10<br>
               &nbsp;&nbsp;vague qualifiers → −(count×4) max−20<br>
               &nbsp;&nbsp;filler phrases → −(count×5) max−15<br>
-              Score = 0.6×completeness + 0.4×clarity
+              Score = 0.6×completeness + 0.4×clarity<br>
+              <span class="util-ref">utils.text_utils.split_sentences</span>
             </div>
           </div>
 
@@ -553,13 +520,9 @@
     </div>
 
     <!-- arrow -->
-    <div class="arr-row" style="padding:4px 0;">
-      <div class="arr-vert" style="height:16px;"></div>
-    </div>
+    <div class="arr-row" style="padding:4px 0;"><div class="arr-vert" style="height:16px;"></div></div>
     <div class="flow-label">FactualCheckResult · ConsistencyResult · BiasResult · ClarityResult</div>
-    <div class="arr-row" style="padding:2px 0 4px;">
-      <div class="arr-head-up"></div>
-    </div>
+    <div class="arr-row" style="padding:2px 0 4px;"><div class="arr-head-up"></div></div>
 
     <!-- Layer: Retrieval -->
     <div style="display:flex;border-top:1px solid #21262d;border-bottom:1px solid #21262d;">
@@ -574,7 +537,8 @@
             <div class="box-sub">
               data/facts.db · table: facts(entity, attribute, value)<br>
               57 seed rows — science, history, geography, tech, biology, literature<br>
-              LIKE queries on entity+value · word_overlap score · contradiction detection<br>
+              LIKE queries on entity+value · contradiction detection<br>
+              <span class="util-ref">utils.text_utils.word_overlap</span><br>
               <span class="note">checked first — fast, offline, deterministic</span>
             </div>
           </div>
@@ -587,7 +551,8 @@
               en.wikipedia.org/w/api.php · @lru_cache(maxsize=256)<br>
               Step 1: search API → best matching title<br>
               Step 2: extract API → intro summary (5 sentences)<br>
-              Word overlap ≥0.25 → "supported" · else "unverified"<br>
+              Overlap ≥0.25 → "supported" · else "unverified"<br>
+              <span class="util-ref">utils.text_utils.word_overlap</span><br>
               <span class="note">fallback when DuckDB has no match</span>
             </div>
           </div>
@@ -597,13 +562,9 @@
     </div>
 
     <!-- arrow -->
-    <div class="arr-row" style="padding:4px 0;">
-      <div class="arr-vert" style="height:16px;"></div>
-    </div>
+    <div class="arr-row" style="padding:4px 0;"><div class="arr-vert" style="height:16px;"></div></div>
     <div class="flow-label">4 result objects → aggregate()</div>
-    <div class="arr-row" style="padding:2px 0 4px;">
-      <div class="arr-head-up"></div>
-    </div>
+    <div class="arr-row" style="padding:2px 0 4px;"><div class="arr-head-up"></div></div>
 
     <!-- Layer: Scoring -->
     <div style="display:flex;border-top:1px solid #21262d;">
@@ -626,7 +587,8 @@
                 <span class="weight-pill w-com">Completeness 10%</span>
               </div>
               Grade: A ≥90 · B ≥78 · C ≥65 · D ≥50 · F &lt;50<br>
-              Issues: [Consistency] + [Bias] + [Safety] + [Clarity] prefixed
+              Issues: [Consistency] + [Bias] + [Safety] + [Clarity] prefixed<br>
+              <span class="config-ref">config/weights.yaml · config/thresholds.yaml</span>
             </div>
           </div>
 
@@ -636,10 +598,24 @@
               accuracy_score · consistency_score<br>
               safety_score · bias_score<br>
               clarity_score · completeness_score<br>
-              confidence_score · grade<br>
+              confidence_score · grade · grade_label()<br>
               all_issues · factual_details<br>
               critique_text · summaries<br>
+              explanation (human-readable verdict)<br>
+              metadata["timings"] — per-step ms<br>
               <b>.to_json()</b> → export download
+            </div>
+          </div>
+
+          <div class="box grey" style="min-width:170px;">
+            <div class="box-title">💡 Explanation Generator
+              <span class="box-tag">explanation_generator.py</span>
+            </div>
+            <div class="box-sub" style="font-size:.68rem;">
+              Generates one-sentence human-<br>
+              readable verdict from scores<br>
+              Called by both scoring engines<br>
+              Stored as report.explanation
             </div>
           </div>
 
@@ -658,233 +634,599 @@
       </div>
     </div>
 
-  </div><!-- end main card -->
-
+  </div><!-- end text pipeline card -->
   </div><!-- end tab-text panel -->
 
-  <!-- ══ IMAGE PIPELINE TAB ══ -->
+
+  <!-- ══════════════════════════════════════════════════════
+       TAB 2 — IMAGE PIPELINE
+  ══════════════════════════════════════════════════════ -->
   <div id="tab-image" class="tab-panel">
 
-  <!-- ── IMAGE EVALUATOR PIPELINE ── -->
-  <div>
-    <div style="font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-                color:#6e7681;margin-bottom:12px;padding-left:4px;">
-      🖼 Image Evaluation Pipeline — image_evaluator/
+  <div style="font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+              color:#6e7681;margin-bottom:12px;padding-left:4px;">
+    🖼 Image Evaluation Pipeline — image_evaluator/
+  </div>
+
+  <div style="border:1px solid #21262d;border-radius:12px;overflow:hidden;">
+
+    <!-- Layer: Image Input -->
+    <div style="display:flex;border-bottom:1px solid #21262d;">
+      <div class="layer-label" style="background:#0d1117;">Input</div>
+      <div style="flex:1;padding:14px 18px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div class="box indigo box-wide">
+            <div class="box-title">📥 evaluate_image()
+              <span class="box-tag">evaluate_image.py</span>
+            </div>
+            <div class="box-sub">
+              Public entry-point — accepts raw <b>image_bytes: bytes</b> + optional <b>caption: str</b><br>
+              Orchestrates all 5 pipeline steps sequentially · Returns ImageEvaluationReport<br>
+              profiler.reset() on entry · report.metadata["timings"] on exit<br>
+              <span class="util-ref">utils.logging_utils.timer(label) — with timer("step"): wrapping each step</span><br>
+              <span class="note">Fully isolated from text pipeline — no shared state or imports</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div style="border:1px solid #21262d;border-radius:12px;overflow:hidden;">
+    <!-- arrow -->
+    <div class="flow-label" style="padding:6px 0 2px;">image_bytes: bytes · caption: str | None</div>
+    <div class="arr-row" style="padding:2px 0 4px;"><div class="arr-head-up"></div></div>
 
-      <!-- Layer: Image Input -->
-      <div style="display:flex;border-bottom:1px solid #21262d;">
-        <div class="layer-label" style="background:#0d1117;">Input</div>
-        <div style="flex:1;padding:14px 18px;">
-          <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <div class="box indigo box-wide">
-              <div class="box-title">📥 evaluate_image()
-                <span class="box-tag">evaluate_image.py</span>
-              </div>
-              <div class="box-sub">
-                Public entry-point — accepts raw <b>image_bytes: bytes</b> + optional <b>caption: str</b><br>
-                Orchestrates all 5 pipeline steps sequentially · Returns ImageEvaluationReport<br>
-                <span class="note">Fully isolated from text pipeline — no shared state or imports</span>
-              </div>
+    <!-- Layer: 5 pipeline steps -->
+    <div style="display:flex;border-top:1px solid #21262d;border-bottom:1px solid #21262d;">
+      <div class="layer-label" style="background:#0d1117;">Pipeline Steps</div>
+      <div style="flex:1;padding:14px 18px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+
+          <!-- Step 1 -->
+          <div class="box orange" style="flex:1;min-width:140px;">
+            <div class="box-title">📋 Step 1 — Metadata
+              <span class="box-tag">metadata_checker.py</span>
+            </div>
+            <div class="box-sub">
+              EXIF via Pillow getexif()<br>
+              XMP / ICC / JFIF parsing<br>
+              AI software tag detection<br>
+              Scoring: start 100<br>
+              −30 no EXIF on JPEG<br>
+              −40 AI generator software<br>
+              −20 no camera model<br>
+              −15 power-of-two AI dims<br>
+              −10 timestamp anomaly<br>
+              +20 valid camera pipeline<br>
+              editing_penalty: [0, 100]<br>
+              <span class="config-ref">config/thresholds.yaml</span><br>
+              → MetadataResult.score [0,1]
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- arrow -->
-      <div class="flow-label" style="padding:6px 0 2px;">image_bytes: bytes · caption: str | None</div>
-      <div class="arr-row" style="padding:2px 0 4px;"><div class="arr-head-up"></div></div>
-
-      <!-- Layer: 5 pipeline steps -->
-      <div style="display:flex;border-top:1px solid #21262d;border-bottom:1px solid #21262d;">
-        <div class="layer-label" style="background:#0d1117;">Pipeline Steps</div>
-        <div style="flex:1;padding:14px 18px;">
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-
-            <div class="box orange" style="flex:1;min-width:140px;">
-              <div class="box-title">📋 Step 1 — Metadata
-                <span class="box-tag">metadata_checker.py</span>
-              </div>
-              <div class="box-sub">
-                EXIF via Pillow getexif()<br>
-                Scoring: start 100<br>
-                −30 no EXIF<br>
-                −40 editing software<br>
-                −20 no camera model<br>
-                −10 timestamp anomaly<br>
-                +20 valid camera pipeline<br>
-                → MetadataResult.score [0,1]
-              </div>
+          <!-- Step 2 -->
+          <div class="box teal" style="flex:1;min-width:150px;">
+            <div class="box-title">🔎 Step 2 — Pixel Forensics
+              <span class="box-tag">pixel_forensics.py</span>
             </div>
-
-            <div class="box teal" style="flex:1;min-width:140px;">
-              <div class="box-title">🔎 Step 2 — Pixel Forensics
-                <span class="box-tag">pixel_forensics.py</span>
-              </div>
-              <div class="box-sub">
-                <b>ELA</b>: re-compress at q=75, pixel diff<br>
-                <b>Noise</b>: Gaussian residual · std · CV<br>
-                <b>FFT</b>: spectral peak ratio<br>
-                <b>JPEG quant</b>: table suspicion check<br>
-                Formula:<br>
-                100−(ela×0.40+noise×0.30+fft×0.30)<br>
-                → PixelForensicsResult.score [0,1]
-              </div>
+            <div class="box-sub">
+              <b>ELA</b>: re-compress at q=75, pixel diff p95<br>
+              <b>JPEG Ghost</b>: 5 quality levels [50–90]<br>
+              &nbsp;&nbsp;patch native-quality entropy (0→100)<br>
+              &nbsp;&nbsp;spatial CV at dominant quality<br>
+              <b>Noise (patch)</b>: Gaussian residual · std · CV<br>
+              <b>Noise (16-block)</b>: 4×4 grid CV<br>
+              &nbsp;&nbsp;real camera: low CV · AI: high CV<br>
+              <b>FFT</b>: spectral peak ratio (log-scale)<br>
+              <b>JPEG quant</b>: DQT table suspicion<br>
+              Pixel formula:<br>
+              100−(ela×0.30+ghost×0.20<br>
+              &nbsp;&nbsp;+noise×0.25+fft×0.25)<br>
+              noise = 60%×patch + 40%×16-block<br>
+              <span class="note">FFT in pixel_score only — excluded from ai_likelihood<br>
+              (JPEG 8×8 block-DCT raises FFT in authentic photos too)</span><br>
+              <span class="util-ref">utils.image_utils.jpeg_recompress · coeff_of_variation</span><br>
+              <span class="config-ref">config/thresholds.yaml · weights.yaml</span><br>
+              → PixelForensicsResult.score [0,1]<br>
+              &nbsp;&nbsp;+ confidence_band
             </div>
-
-            <div class="box purple" style="flex:1;min-width:150px;">
-              <div class="box-title">🤖 Step 3 — AI Artifact
-                <span class="box-tag">ai_artifact_classifier.py</span>
-              </div>
-              <div class="box-sub">
-                <b>6 heuristics</b> (always runs):<br>
-                texture smoothness · colour entropy<br>
-                edge sharpness · HF/LF ratio<br>
-                saturation skew · bilateral symmetry<br>
-                <b>FreqNet-inspired</b> (always runs):<br>
-                spectral roll-off · mid-freq anomaly<br>
-                spectral entropy · peak prominence<br>
-                <b>CLIP probe</b> (optional, SKIP_CLIP=1 to skip)<br>
-                method: heuristic+freqnet[+model]<br>
-                → AIArtifactResult.ai_prob [0,1]
-              </div>
-            </div>
-
-            <div class="box blue" style="flex:1;min-width:140px;">
-              <div class="box-title">📝 Step 4 — Consistency
-                <span class="box-tag">image_text_consistency.py</span>
-              </div>
-              <div class="box-sub">
-                <b>CLIP path</b> (preferred):<br>
-                start 100 · penalty scoring:<br>
-                −40 object mismatch<br>
-                −30 impossible geometry<br>
-                −20 lighting/physics mismatch<br>
-                −10 caption hallucination (×3 max)<br>
-                <b>Keyword fallback</b> (no CLIP):<br>
-                dominant colour matching<br>
-                <span class="note">Skipped if no caption supplied</span>
-                → ConsistencyResult.score [0,1]
-              </div>
-            </div>
-
-            <div class="box green" style="flex:1;min-width:140px;">
-              <div class="box-title">🌐 Step 5 — Reverse Search
-                <span class="box-tag">reverse_image_search.py</span>
-              </div>
-              <div class="box-sub">
-                <b>Priority order:</b><br>
-                1. Google Cloud Vision API<br>
-                2. Bing Visual Search API<br>
-                3. SerpApi (Google Lens)<br>
-                pHash refinement on source DLs<br>
-                Similarity tiers:<br>
-                full match → 1.00<br>
-                partial match → 0.80<br>
-                pages only → 0.50<br>
-                <span class="note">Skipped if no API key configured</span>
-                → ReverseSearchResult.similarity [0,1]
-              </div>
-            </div>
-
           </div>
-        </div>
-      </div>
 
-      <!-- arrow -->
-      <div class="flow-label" style="padding:6px 0 2px;">
-        MetadataResult · PixelForensicsResult · AIArtifactResult · ConsistencyResult · ReverseSearchResult
-      </div>
-      <div class="arr-row" style="padding:2px 0 4px;"><div class="arr-head-up"></div></div>
-
-      <!-- Layer: Scoring -->
-      <div style="display:flex;border-top:1px solid #21262d;">
-        <div class="layer-label" style="background:#0d1117;">Scoring</div>
-        <div style="flex:1;padding:14px 18px;">
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;">
-
-            <div class="box pink box-wide">
-              <div class="box-title">⚡ Image Scoring Engine
-                <span class="box-tag">image_scoring.py</span>
-              </div>
-              <div class="box-sub">
-                <b>Exact formula (spec §1):</b><br>
-                authenticity_score = weighted_sum × 100
-                <div class="weights">
-                  <span class="weight-pill w-meta">Metadata 20%</span>
-                  <span class="weight-pill w-pix">Pixel 25%</span>
-                  <span class="weight-pill w-ai">AI Artifact 35%</span>
-                  <span class="weight-pill w-con2">Consistency 10%</span>
-                  <span class="weight-pill w-rev">Reverse Search 10%</span>
-                </div>
-                Skipped steps → weight redistributed proportionally<br>
-                ai_likelihood = ai_prob × 100<br>
-                editing_likelihood = keyword-weighted flag scan<br>
-                Grade: A ≥80 · B ≥65 · C ≥50 · D ≥35 · F &lt;35
-              </div>
+          <!-- Step 3 -->
+          <div class="box purple" style="flex:1;min-width:150px;">
+            <div class="box-title">🤖 Step 3 — AI Artifact
+              <span class="box-tag">ai_artifact_classifier.py</span>
             </div>
-
-            <div class="box grey" style="min-width:200px;">
-              <div class="box-title">📦 ImageEvaluationReport</div>
-              <div class="box-sub" style="font-size:.68rem;">
-                authenticity_score [0–100]<br>
-                ai_likelihood [0–100]<br>
-                editing_likelihood [0–100]<br>
-                grade · summary<br>
-                evidence: {<br>
-                &nbsp;&nbsp;metadata_flags: [...]<br>
-                &nbsp;&nbsp;pixel_artifacts: [...]<br>
-                &nbsp;&nbsp;ai_artifact_features: [...]<br>
-                &nbsp;&nbsp;ai_artifact_features_dict: {...}<br>
-                &nbsp;&nbsp;consistency_issues: [...]<br>
-                &nbsp;&nbsp;reverse_search_hits: [...] }<br>
-                component_scores · component_weights
-              </div>
+            <div class="box-sub">
+              <b>① HuggingFace classifier</b> (primary):<br>
+              &nbsp;&nbsp;umm-maybe/AI-image-detector<br>
+              &nbsp;&nbsp;ViT fine-tuned real-vs-AI<br>
+              &nbsp;&nbsp;lazy-loaded, process-cached<br>
+              &nbsp;&nbsp;SKIP_HF_MODEL=1 to force heuristic<br>
+              <b>② FreqNet-inspired</b> (always):<br>
+              &nbsp;&nbsp;spectral roll-off · mid-freq anomaly<br>
+              &nbsp;&nbsp;spectral entropy · peak prominence<br>
+              <b>③ 6 pixel heuristics</b> (always):<br>
+              &nbsp;&nbsp;texture smoothness · colour entropy<br>
+              &nbsp;&nbsp;edge sharpness · HF/LF ratio<br>
+              &nbsp;&nbsp;saturation skew · bilateral symmetry<br>
+              Combine (model available):<br>
+              &nbsp;&nbsp;ai_prob = 0.80×model + 0.20×blend<br>
+              Combine (heuristic only):<br>
+              &nbsp;&nbsp;ai_prob = 0.70×heuristic + 0.30×freqnet<br>
+              OOD detection → ood_warning badge<br>
+              <span class="model-ref">models/image_model_registry.py</span><br>
+              → AIArtifactResult.ai_prob [0,1]<br>
+              &nbsp;&nbsp;+ confidence_band · method · ood_warning
             </div>
-
-            <div class="box grey" style="min-width:170px;">
-              <div class="box-title">💾 Image History</div>
-              <div class="box-sub" style="font-size:.68rem;">
-                session_state["img_history"]<br>
-                stores: ts · filename · caption<br>
-                authenticity · ai_likelihood<br>
-                editing_likelihood · grade · report<br>
-                Shown in Dashboard tab:<br>
-                🖼 Image Evaluations<br>
-                <span class="note">lost on page refresh</span>
-              </div>
-            </div>
-
           </div>
+
+          <!-- Step 4 -->
+          <div class="box blue" style="flex:1;min-width:140px;">
+            <div class="box-title">📝 Step 4 — Consistency
+              <span class="box-tag">image_text_consistency.py</span>
+            </div>
+            <div class="box-sub">
+              <b>CLIP path</b> (preferred):<br>
+              clip-ViT-B-32 cosine similarity<br>
+              mapped from [0.15–0.35] → [0,1]<br>
+              Sub-phrase re-ranking for issues<br>
+              <b>Keyword fallback</b> (no CLIP):<br>
+              dominant colour + noun matching<br>
+              <span class="model-ref">models/embeddings_registry.py</span><br>
+              <span class="note">Skipped if no caption supplied</span><br>
+              → ConsistencyResult.score [0,1]
+            </div>
+          </div>
+
+          <!-- Step 5 -->
+          <div class="box green" style="flex:1;min-width:140px;">
+            <div class="box-title">🌐 Step 5 — Reverse Search
+              <span class="box-tag">reverse_image_search.py</span>
+            </div>
+            <div class="box-sub">
+              <b>Priority order:</b><br>
+              1. Google Cloud Vision API<br>
+              2. Bing Visual Search API<br>
+              3. SerpApi (Google Lens)<br>
+              pHash refinement on source DLs<br>
+              Similarity tiers:<br>
+              ≥0.90 → 1.00 (exact match)<br>
+              ≥0.70 → 0.80 (high sim)<br>
+              ≥0.30 → 0.50 (partial)<br>
+              &lt;0.30 → 0.00 (no match)<br>
+              <span class="note">Skipped if no API key configured</span><br>
+              → ReverseSearchResult
+            </div>
+          </div>
+
         </div>
       </div>
+    </div>
 
-    </div><!-- end image pipeline card -->
-  </div><!-- end image pipeline wrapper -->
+    <!-- arrow -->
+    <div class="flow-label" style="padding:6px 0 2px;">
+      MetadataResult · PixelForensicsResult · AIArtifactResult · ConsistencyResult · ReverseSearchResult
+    </div>
+    <div class="arr-row" style="padding:2px 0 4px;"><div class="arr-head-up"></div></div>
 
+    <!-- Layer: Scoring -->
+    <div style="display:flex;border-top:1px solid #21262d;">
+      <div class="layer-label" style="background:#0d1117;">Scoring</div>
+      <div style="flex:1;padding:14px 18px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+
+          <div class="box pink box-wide">
+            <div class="box-title">⚡ Image Scoring Engine
+              <span class="box-tag">image_scoring.py</span>
+            </div>
+            <div class="box-sub">
+              <b>Image-type detection</b> (flat_ratio · unique_ratio · noise_std):<br>
+              &nbsp;&nbsp;photo · illustration · screenshot<br>
+              <b>Adaptive weights per type (photo defaults):</b>
+              <div class="weights">
+                <span class="weight-pill w-meta">Metadata 20%</span>
+                <span class="weight-pill w-pix">Pixel 25%</span>
+                <span class="weight-pill w-ai">AI Artifact 35%</span>
+                <span class="weight-pill w-con2">Consistency 10%</span>
+                <span class="weight-pill w-rev">Reverse 10%</span>
+              </div>
+              Skipped steps → normalize_weights() redistributes proportionally<br>
+              authenticity_score = weighted_sum × 100<br>
+              <b>ai_likelihood (ML-gated pixel boost):</b><br>
+              &nbsp;&nbsp;gate = clip((ai_prob−0.10)/0.20, 0, 1)<br>
+              &nbsp;&nbsp;ai_prob* = ai_prob + gate×noise_block_sig×0.50×(1−ai_prob)<br>
+              &nbsp;&nbsp;signal: noise_block_consistency CV → [0,1] · FFT excluded<br>
+              &nbsp;&nbsp;gate=0 when ML confident (ai_prob&lt;0.10) → no pixel boost<br>
+              editing_likelihood = 0.6×ela_badness + 0.4×metadata_edit_penalty<br>
+              Confidence band propagation: Σ(w_i × band_i) × 100<br>
+              Top 3 signals ranked by strength · ai threshold ≥ 0.25<br>
+              Grade: A ≥80 · B ≥65 · C ≥50 · D ≥35 · F &lt;35<br>
+              <span class="util-ref">utils.scoring_utils.normalize_weights</span><br>
+              <span class="config-ref">config/weights.yaml · thresholds.yaml</span>
+            </div>
+          </div>
+
+          <div class="box grey" style="min-width:200px;">
+            <div class="box-title">📦 ImageEvaluationReport</div>
+            <div class="box-sub" style="font-size:.68rem;">
+              authenticity_score [0–100]<br>
+              authenticity_band [0–100]<br>
+              ai_likelihood [0–100]<br>
+              ai_likelihood_band [0–100]<br>
+              editing_likelihood [0–100]<br>
+              editing_likelihood_band [0–100]<br>
+              grade · summary · explanation<br>
+              top_signals: [str, str, str]<br>
+              evidence: {<br>
+              &nbsp;&nbsp;image_type · metadata_flags<br>
+              &nbsp;&nbsp;pixel_artifacts · ai_method<br>
+              &nbsp;&nbsp;ai_artifact_features[_dict]<br>
+              &nbsp;&nbsp;ood_warning · ai_feature_vector<br>
+              &nbsp;&nbsp;consistency_issues<br>
+              &nbsp;&nbsp;reverse_search_hits<br>
+              &nbsp;&nbsp;component_scores · component_weights<br>
+              &nbsp;&nbsp;*_band fields per component }<br>
+              metadata["timings"] — per-step ms
+            </div>
+          </div>
+
+          <div class="box grey" style="min-width:170px;">
+            <div class="box-title">💡 Explanation Generator</div>
+            <div class="box-sub" style="font-size:.68rem;">
+              explanation_generator.py<br>
+              Human-readable verdict<br>
+              from score + grade + top_signals<br>
+              Stored as report.explanation<br>
+              Displayed as st.info() in UI
+            </div>
+          </div>
+
+          <div class="box grey" style="min-width:170px;">
+            <div class="box-title">💾 Image History</div>
+            <div class="box-sub" style="font-size:.68rem;">
+              session_state["img_history"]<br>
+              Keyed by make_cache_key()<br>
+              (sha256: image_bytes ‖ caption)<br>
+              stores: ts · filename · caption<br>
+              authenticity · ai_likelihood<br>
+              editing_likelihood · grade · report<br>
+              Shown in Dashboard:<br>
+              🖼 Image Evaluations tab<br>
+              <span class="util-ref">utils.cache_utils.make_cache_key</span><br>
+              <span class="note">lost on page refresh</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end image pipeline card -->
   </div><!-- end tab-image panel -->
+
+
+  <!-- ══════════════════════════════════════════════════════
+       TAB 3 — SHARED INFRASTRUCTURE
+  ══════════════════════════════════════════════════════ -->
+  <div id="tab-infra" class="tab-panel">
+
+  <div style="font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+              color:#6e7681;margin-bottom:12px;padding-left:4px;">
+    🏗 Shared Infrastructure — utils/ · models/ · config/ · root helpers
+  </div>
+
+  <!-- Root helpers row -->
+  <div style="border:1px solid #21262d;border-radius:12px;overflow:hidden;margin-bottom:12px;">
+    <div style="display:flex;border-bottom:1px solid #21262d;">
+      <div class="layer-label" style="background:#0d1117;">Root Helpers</div>
+      <div style="flex:1;padding:14px 18px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+
+          <div class="box green">
+            <div class="box-title">⚙ config_loader.py</div>
+            <div class="box-sub">
+              Loads all three YAML files once at<br>
+              import time into module-level dicts.<br>
+              <b>get_threshold(key)</b> → float<br>
+              <b>get_weight(key)</b> → float<br>
+              <b>get_feature(key)</b> → bool<br>
+              Dotted key access: "image.grade.a"<br>
+              Used by pixel_forensics, image_scoring,<br>
+              scoring_engine, metadata_checker
+            </div>
+          </div>
+
+          <div class="box blue">
+            <div class="box-title">📋 evaluation_report_base.py</div>
+            <div class="box-sub">
+              Shared base dataclass for both pipelines.<br>
+              <b>EvaluationReportBase</b>:<br>
+              &nbsp;&nbsp;scores: dict · issues: list[str]<br>
+              &nbsp;&nbsp;evidence: dict · explanation: str<br>
+              &nbsp;&nbsp;metadata: dict<br>
+              Inherited by EvaluationReport (text)<br>
+              and ImageEvaluationReport (image)
+            </div>
+          </div>
+
+          <div class="box purple">
+            <div class="box-title">💡 explanation_generator.py</div>
+            <div class="box-sub">
+              <b>generate_explanation(report)</b><br>
+              Generates one-sentence human-readable<br>
+              verdict for any EvaluationReportBase.<br>
+              Uses grade + score thresholds to<br>
+              pick template sentence.<br>
+              Called by both scoring engines.<br>
+              "no AI signals" strength guarded:<br>
+              &nbsp;&nbsp;requires ai &lt; 35 AND<br>
+              &nbsp;&nbsp;n_pixel_artifacts == 0<br>
+              Result stored as report.explanation
+            </div>
+          </div>
+
+          <div class="box grey">
+            <div class="box-title">⏱ profiler.py</div>
+            <div class="box-sub">
+              Thread-safe timing utility.<br>
+              <b>reset()</b> — clear all timers<br>
+              <b>start_timer(label)</b> — record start<br>
+              <b>end_timer(label)</b> — record elapsed<br>
+              <b>get_timings()</b> → dict[str, ms]<br>
+              &nbsp;&nbsp;includes "total_ms"<br>
+              Wrapped by utils.logging_utils.timer()
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- utils/ row -->
+  <div style="border:1px solid #059669;border-radius:12px;overflow:hidden;margin-bottom:12px;">
+    <div style="background:#091d1a;padding:8px 14px;font-size:.72rem;font-weight:700;
+                color:#34d399;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid #059669;">
+      📦 utils/ — shared helper functions (zero external dependencies)
+    </div>
+    <div style="padding:14px 18px;">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+
+        <div class="box teal" style="flex:1;min-width:150px;">
+          <div class="box-title">📝 text_utils.py</div>
+          <div class="box-sub">
+            <b>STOPWORDS</b>: frozenset of 30 common words<br>
+            <b>word_overlap(a, b)</b> → float<br>
+            &nbsp;&nbsp;|tokens_a ∩ tokens_b| / |tokens_a|<br>
+            &nbsp;&nbsp;used by DuckDB + Wikipedia retrievers<br>
+            <b>split_sentences(text)</b> → list[str]<br>
+            &nbsp;&nbsp;re.split on [.!?]+ used by clarity scorer<br>
+            <b>parse_llm_score(text)</b> → float|None<br>
+            &nbsp;&nbsp;regex: "X/10" · "Score: X" patterns<br>
+            &nbsp;&nbsp;used by consistency + bias checkers<br>
+            <b>extract_issue_bullets(critique, …)</b> → list[str]<br>
+            &nbsp;&nbsp;params: problem_kw_pattern, min_len,<br>
+            &nbsp;&nbsp;neg_re (optional), skip_line_re (optional)<br>
+            &nbsp;&nbsp;used by consistency + bias checkers
+          </div>
+        </div>
+
+        <div class="box teal" style="flex:1;min-width:150px;">
+          <div class="box-title">🖼 image_utils.py</div>
+          <div class="box-sub">
+            <b>load_image_rgb(image_bytes)</b><br>
+            &nbsp;&nbsp;→ (pil_img, img_rgb_f32, img_gray_f32)<br>
+            &nbsp;&nbsp;used by ai_artifact_classifier<br>
+            <b>jpeg_recompress(img, quality)</b><br>
+            &nbsp;&nbsp;img: PIL Image → float32 ndarray<br>
+            &nbsp;&nbsp;re-saves as JPEG at given quality<br>
+            &nbsp;&nbsp;used by pixel_forensics (ELA + JPEG Ghost)<br>
+            <b>coeff_of_variation(arr, eps=1e-6)</b><br>
+            &nbsp;&nbsp;std / (mean + eps)<br>
+            &nbsp;&nbsp;used 3× in pixel_forensics<br>
+            &nbsp;&nbsp;(noise CV, block CV, ghost spatial CV)
+          </div>
+        </div>
+
+        <div class="box teal" style="flex:1;min-width:150px;">
+          <div class="box-title">📊 scoring_utils.py</div>
+          <div class="box-sub">
+            <b>clamp(v, lo, hi)</b> → float<br>
+            <b>clamp100(v)</b> → float [0,100]<br>
+            <b>letter_grade(score, thresholds)</b> → str<br>
+            <b>normalize_weights(weights)</b> → dict<br>
+            &nbsp;&nbsp;divides each value by sum<br>
+            &nbsp;&nbsp;used by image_scoring.aggregate()<br>
+            <b>weighted_average(scores, weights)</b> → float<br>
+            &nbsp;&nbsp;calls normalize_weights internally<br>
+            <b>score_to_color(score, thresholds, colors, invert)</b> → str<br>
+            &nbsp;&nbsp;defaults: thresholds=(70,45)<br>
+            &nbsp;&nbsp;colors=("#4ade80","#fbbf24","#f87171")<br>
+            &nbsp;&nbsp;used by pages/2 and pages/3
+          </div>
+        </div>
+
+        <div class="box teal" style="flex:1;min-width:120px;">
+          <div class="box-title">⏱ logging_utils.py</div>
+          <div class="box-sub">
+            <b>timer(label)</b><br>
+            contextlib.contextmanager<br>
+            wrapping profiler.start_timer /<br>
+            profiler.end_timer.<br>
+            Always calls end_timer in<br>
+            finally block (exception-safe).<br><br>
+            Usage:<br>
+            <code style="font-size:.65rem;">
+            with timer("factual"):<br>
+            &nbsp;&nbsp;result = checker.run(…)
+            </code><br><br>
+            Used by pipeline.py<br>
+            and evaluate_image.py
+          </div>
+        </div>
+
+        <div class="box teal" style="flex:1;min-width:120px;">
+          <div class="box-title">🔑 cache_utils.py</div>
+          <div class="box-sub">
+            <b>make_cache_key(*parts)</b> → str<br>
+            SHA-256 incremental update.<br>
+            Accepts bytes or str parts.<br>
+            str parts encoded as UTF-8.<br><br>
+            Equivalent to:<br>
+            sha256(part1 ‖ part2 ‖ …)<br><br>
+            Used by pages/3_Image_Evaluator<br>
+            to cache evaluations by<br>
+            sha256(image_bytes ‖ caption)
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- models/ row -->
+  <div style="border:1px solid #8b5cf6;border-radius:12px;overflow:hidden;margin-bottom:12px;">
+    <div style="background:#110c1f;padding:8px 14px;font-size:.72rem;font-weight:700;
+                color:#d2a8ff;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid #8b5cf6;">
+      🧠 models/ — lazy-loading model registries (process-level caching)
+    </div>
+    <div style="padding:14px 18px;">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+
+        <div class="box purple" style="flex:1;">
+          <div class="box-title">🤖 llm_registry.py</div>
+          <div class="box-sub">
+            LLM client factory.<br>
+            <b>get_model(display_name)</b> → client<br>
+            Looks up model in MODEL_REGISTRY<br>
+            (Ollama tag or OpenAI model id).<br>
+            Returns configured client object.<br>
+            Used by consistency_checker +<br>
+            bias_safety_checker for LLM calls.
+          </div>
+        </div>
+
+        <div class="box purple" style="flex:1;">
+          <div class="box-title">🖼 image_model_registry.py</div>
+          <div class="box-sub">
+            HuggingFace image model loader.<br>
+            <b>get_model(name)</b> → pipeline|None<br>
+            Lazy-loads transformers pipeline on<br>
+            first call; cached for process lifetime.<br>
+            Default: umm-maybe/AI-image-detector<br>
+            (ViT binary real-vs-AI classifier).<br>
+            Falls back gracefully if model<br>
+            unavailable or SKIP_HF_MODEL=1.<br>
+            Used by ai_artifact_classifier.
+          </div>
+        </div>
+
+        <div class="box purple" style="flex:1;">
+          <div class="box-title">🔗 embeddings_registry.py</div>
+          <div class="box-sub">
+            CLIP / sentence-transformers loader.<br>
+            <b>get_model(name)</b> → model|None<br>
+            Lazy-loads clip-ViT-B-32 on first call.<br>
+            Cached for process lifetime.<br>
+            Returns None gracefully if<br>
+            sentence-transformers not installed.<br>
+            Used by image_text_consistency<br>
+            for cosine similarity scoring.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- config/ row -->
+  <div style="border:1px solid #238636;border-radius:12px;overflow:hidden;">
+    <div style="background:#091a0f;padding:8px 14px;font-size:.72rem;font-weight:700;
+                color:#56d364;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid #238636;">
+      ⚙ config/ — YAML-driven runtime configuration (edit without touching code)
+    </div>
+    <div style="padding:14px 18px;">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+
+        <div class="box green" style="flex:1;">
+          <div class="box-title">📏 thresholds.yaml</div>
+          <div class="box-sub">
+            Grade cut-offs: text.grade.{a,b,c,d}<br>
+            Image grades: image.grade.{a,b,c,d}<br>
+            ELA cap: image.ela_p95_norm_cap (30.0)<br>
+            Noise: image.noise.high_cv_threshold<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.noise.low_std_threshold<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.noise.block_cv_high<br>
+            FFT: image.fft_norm_cap (0.25)<br>
+            Confidence bands: image.pixel_band.*<br>
+            AI band adjustments per image type<br>
+            Metadata: metadata_penalty.ai_dimensions (15)<br>
+            Pixel AI blend: ai_pixel_blend.gate_low (0.10)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ai_pixel_blend.gate_high (0.30)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ai_pixel_blend.max_contribution (0.50)<br>
+            Top signals: top_signals_ai_min_prob (0.25)<br>
+            Score colour thresholds: text.score_color.*
+          </div>
+        </div>
+
+        <div class="box green" style="flex:1;">
+          <div class="box-title">⚖ weights.yaml</div>
+          <div class="box-sub">
+            Text scoring:<br>
+            &nbsp;&nbsp;text.scoring.{accuracy…completeness}<br>
+            Image scoring per type:<br>
+            &nbsp;&nbsp;image.scoring_weights.photo.*<br>
+            &nbsp;&nbsp;image.scoring_weights.illustration.*<br>
+            &nbsp;&nbsp;image.scoring_weights.screenshot.*<br>
+            Pixel formula: image.pixel_formula.*<br>
+            &nbsp;&nbsp;ela=0.30 · ghost=0.20<br>
+            &nbsp;&nbsp;noise=0.25 · fft=0.25<br>
+            &nbsp;&nbsp;noise_patch=0.60 · noise_block=0.40<br>
+            Editing likelihood: image.editing_likelihood.*
+          </div>
+        </div>
+
+        <div class="box green" style="flex:1;">
+          <div class="box-title">🚩 features.yaml</div>
+          <div class="box-sub">
+            Feature flags (bool):<br><br>
+            <b>debug</b>: false<br>
+            &nbsp;&nbsp;Adds intermediate scores to<br>
+            &nbsp;&nbsp;report.metadata["debug"]<br><br>
+            <b>text.llm_bias_check</b>: true<br>
+            &nbsp;&nbsp;Enables LLM-powered bias<br>
+            &nbsp;&nbsp;checker (slower but more thorough)<br><br>
+            All flags read via<br>
+            config_loader.get_feature(key)
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  </div><!-- end tab-infra panel -->
+
 
   <!-- ── LEGEND ── -->
   <div class="legend">
     <div class="legend-item">
-      <div class="legend-dot" style="background:#0c2044;border-color:#1f6feb;"></div> UI / LLM Backend
+      <div class="legend-dot" style="background:#0c2044;border-color:#1f6feb;"></div> UI / LLM Backend / Retrieval
     </div>
     <div class="legend-item">
-      <div class="legend-dot" style="background:#0c2d1c;border-color:#238636;"></div> LLM Response / Reverse Search
+      <div class="legend-dot" style="background:#0c2d1c;border-color:#238636;"></div> LLM Response / Reverse Search / Config
     </div>
     <div class="legend-item">
       <div class="legend-dot" style="background:#2d1b06;border-color:#d29922;"></div> Factual / Metadata Checker
     </div>
     <div class="legend-item">
-      <div class="legend-dot" style="background:#1c0c2d;border-color:#8b5cf6;"></div> Consistency / AI Artifact / Scoring
+      <div class="legend-dot" style="background:#1c0c2d;border-color:#8b5cf6;"></div> Consistency / AI Artifact / Scoring / Models
     </div>
     <div class="legend-item">
       <div class="legend-dot" style="background:#2d0c0c;border-color:#da3633;"></div> Bias &amp; Safety
     </div>
     <div class="legend-item">
-      <div class="legend-dot" style="background:#0c2626;border-color:#059669;"></div> Clarity / Pixel Forensics
+      <div class="legend-dot" style="background:#0c2626;border-color:#059669;"></div> Clarity / Pixel Forensics / Utils
     </div>
     <div class="legend-item">
       <div class="legend-dot" style="background:#0f0c2d;border-color:#6366f1;"></div> Image UI / Entry-point
@@ -892,8 +1234,17 @@
     <div class="legend-item">
       <div class="legend-dot" style="background:#2d0c1e;border-color:#ec4899;"></div> Image Scoring Engine
     </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#0c2233;border-color:#22d3ee;"></div> Pipeline Orchestrator
+    </div>
     <div class="legend-item" style="margin-left:12px;">
-      <span style="font-size:.72rem;color:#6e7681;">Text LLM calls (critique ON): <b style="color:#e3b341;">3</b> · compare mode ON: <b style="color:#e3b341;">6</b> &nbsp;|&nbsp; Image pipeline: <b style="color:#a5b4fc;">CPU-only · no GPU required</b></span>
+      <span style="font-size:.72rem;color:#6e7681;">
+        Text LLM calls (critique ON): <b style="color:#e3b341;">3</b> · compare mode ON: <b style="color:#e3b341;">6</b>
+        &nbsp;|&nbsp;
+        Image pipeline: <b style="color:#a5b4fc;">CPU-only · no GPU required · HF model optional</b>
+        &nbsp;|&nbsp;
+        <span style="color:#34d399;">green badges</span> = utils/ · <span style="color:#d2a8ff;">purple badges</span> = models/ · <span style="color:#56d364;">green-border badges</span> = config/
+      </span>
     </div>
   </div>
 

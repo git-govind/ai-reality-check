@@ -1,0 +1,155 @@
+# ---------------------------------------------------------------------------
+# thresholds.yaml — numeric decision thresholds for the AI Reality Check pipeline
+#
+# A "threshold" is any numeric value that gates a categorical decision
+# (grade boundaries, matching cutoffs, penalty amounts, signal caps, etc.).
+# ---------------------------------------------------------------------------
+
+# ── Image pipeline ───────────────────────────────────────────────────────────
+
+image:
+
+  # Authenticity score → letter grade (0–100 scale)
+  grade:
+    a: 80   # ≥ 80 → A  almost certainly authentic
+    b: 65   # ≥ 65 → B  probably authentic
+    c: 50   # ≥ 50 → C  uncertain
+    d: 35   # ≥ 35 → D  probably manipulated / AI-generated
+            # <  35 → F  almost certainly manipulated / AI-generated
+
+  # ELA normalization cap: ela_badness = min(100, ela_p95 / cap × 100)
+  ela_p95_norm_cap: 30.0
+
+  # FFT normalization cap: fft_badness = min(100, norm_peak / cap × 100)
+  fft_norm_cap: 0.25
+
+  # Noise analysis signal thresholds (patch-level)
+  noise:
+    low_std_threshold: 2.0    # residual std below this → suspiciously smooth
+    high_cv_threshold: 0.60   # CV above this → spatially inconsistent noise
+    block_cv_high: 0.45       # 16-block CV above this triggers a flag
+
+  # CLIP zero-shot OOD detection: min softmax score to emit a warning
+  # (5 classes, uniform baseline = 0.20; 0.32 requires clear OOD preference)
+  ood_threshold: 0.32
+
+  # Pixel forensics confidence band (± uncertainty on pixel score, fraction of [0,1])
+  pixel_band:
+    jpeg: 0.12              # JPEG: ELA + Ghost both meaningful → narrow
+    png: 0.20               # PNG: lossless, ELA artefactual → wide
+    other: 0.17             # other formats: intermediate
+    small_image_penalty: 0.05   # added when image area < small_area
+    tiny_image_penalty: 0.10    # added when image area < tiny_area
+    small_area: 262144      # 512 × 512 pixel area threshold
+    tiny_area: 65536        # 256 × 256 pixel area threshold
+
+  # Metadata confidence band (± uncertainty on metadata score, fraction of [0,1])
+  # Depends on how many strong authenticity signals are present.
+  metadata_band:
+    no_exif: 0.25             # no EXIF at all → almost no signal
+    zero_signals: 0.20        # EXIF present but sparse
+    one_signal: 0.15          # one positive signal (camera make/model)
+    two_signals: 0.12         # two positive signals
+    three_or_more: 0.08       # three or more (camera + MakerNote + GPS/thumbnail)
+
+  # Metadata scoring penalties (score starts at 100, penalties applied, bonuses added)
+  metadata_penalty:
+    no_exif: 30               # JPEG/TIFF with no EXIF block
+    ai_generator: 40          # AI generation software tag detected
+    photo_editor: 15          # Photo editing software tag detected
+    no_camera: 20             # Both make and model missing
+    camera_model_only: 10     # Only model missing (make present)
+    timestamp_anomaly: 10     # Future date or > 24 h inconsistency
+    ai_dimensions: 15         # Power-of-two WxH dimensions typical of AI generators
+
+  # Metadata scoring bonuses
+  metadata_bonus:
+    camera_pipeline: 20       # Make + model present, no editing sw, no ts issues
+    makernote: 15             # MakerNote blob present (camera-proprietary)
+    gps: 10                   # GPS coordinates embedded
+    thumbnail: 10             # EXIF thumbnail present (camera-generated)
+
+  # AI likelihood confidence band adjustment for image types outside the photo distribution
+  # Added to ai_artifact.confidence_band before propagation in aggregate().
+  ai_band_adjustment:
+    illustration: 0.12
+    screenshot: 0.20
+
+  # Pixel forensics → AI likelihood blend
+  # Noise block inconsistency (spatial CV of 16-block sensor noise) is used to
+  # supplement the ML classifier when it is uncertain.  FFT spectral peaks are
+  # intentionally excluded: JPEG 8×8 block-DCT quantisation routinely creates
+  # periodic spectral peaks in authentic camera photos, making FFT unreliable
+  # as an AI-vs-real discriminator at the ai_likelihood level.
+  #
+  # ml_gate: the pixel contribution is gated on the ML classifier's own ai_prob
+  # so that a clear "not AI" ML verdict (ai_prob < gate_low) is not overridden.
+  #   gate = 0 when ai_prob < gate_low  (ML confident it's real → no pixel boost)
+  #   gate = 1 when ai_prob > gate_high (ML uncertain → full pixel boost)
+  ai_pixel_blend:
+    max_contribution: 0.50    # pixel signal maximum incremental contribution to ai_prob
+    gate_low:  0.10           # ai_prob below this → gate = 0 (no pixel boost)
+    gate_high: 0.30           # ai_prob above this → gate = 1 (full pixel boost)
+
+  # Minimum raw ML ai_prob for the "AI detector" entry to appear in top_signals.
+  # Below this, a low AI probability is an authenticity indicator, not a concern.
+  top_signals_ai_min_prob: 0.25
+
+# ── Text pipeline ────────────────────────────────────────────────────────────
+
+text:
+
+  # Confidence score → letter grade (0–100 scale)
+  grade:
+    a: 90   # ≥ 90 → A  Excellent
+    b: 78   # ≥ 78 → B  Good
+    c: 65   # ≥ 65 → C  Acceptable
+    d: 50   # ≥ 50 → D  Needs Improvement
+            # <  50 → F  Poor / Unsafe
+
+  # Confidence score → Streamlit UI color
+  score_color:
+    green: 78     # ≥ 78 → green
+    orange: 55    # ≥ 55 → orange  (< 55 → red)
+
+  # Factual / claim checking
+  factual:
+    default_score: 70.0         # returned when no verifiable claims are found
+    contradiction_penalty: 15.0 # pts deducted per contradicted claim (after 0 credit)
+
+  # Logical consistency checking
+  consistency:
+    heuristic_default: 80.0     # starting score for the heuristic pass
+    contradiction_penalty: 10   # pts deducted per detected contradiction pattern
+    score_floor: 50.0           # minimum score after heuristic penalties
+
+  # Bias detection
+  bias:
+    penalty: 20.0               # pts deducted per matched bias rule
+
+  # Safety detection
+  safety:
+    penalty: 25.0               # pts deducted per matched safety rule
+    llm_fallback_score: 80.0    # returned when LLM bias check fails
+
+  # Clarity and completeness scoring
+  clarity:
+    long_sentence_words: 35         # avg word count above which a penalty is applied
+    long_sentence_penalty: 10       # pts deducted for long sentences
+    vague_phrase_count: 2           # minimum flagged vague phrases before penalising
+    vague_phrase_penalty: 4         # pts per vague phrase
+    vague_phrase_max_penalty: 20    # cap on total vague-phrase penalty
+    filler_penalty: 5               # pts per filler phrase ("As an AI", etc.)
+    filler_max_penalty: 15          # cap on total filler penalty
+    structural_bonus: 5             # pts added when headers / bullets detected
+    short_response_words: 30        # response below this word count is "too short"
+    short_response_cap: 55.0        # completeness score cap for short responses
+    long_response_words: 600        # response above this word count triggers a flag
+    low_overlap_threshold: 0.3      # keyword overlap below this → completeness issue
+    completeness_scale: 130         # overlap × this = raw completeness score (before min/cap)
+    default_completeness: 70.0      # score when no prompt keywords are found
+
+  # DuckDB fact retrieval matching thresholds
+  duckdb:
+    support_threshold: 0.40     # word-overlap ratio to classify a claim as "supported"
+    contradict_threshold: 0.20  # minimum overlap to attempt a contradiction match

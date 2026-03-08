@@ -12,6 +12,17 @@ from typing import List
 from src.retrieval.duckdb_retriever import DuckDBCheckResult, verify_claim_against_duckdb
 from src.retrieval.wikipedia_retriever import extract_key_claims, verify_claim_against_wiki
 
+from config_loader import get_threshold, get_weight
+
+# ---------------------------------------------------------------------------
+# Config-driven constants (loaded once at import time)
+# ---------------------------------------------------------------------------
+_DEFAULT_SCORE           = get_threshold("text.factual.default_score")
+_CONTRADICTION_PENALTY   = get_threshold("text.factual.contradiction_penalty")
+_W_DUCKDB_SUPPORTED      = get_weight("text.factual.duckdb_supported")
+_W_WIKIPEDIA_SUPPORTED   = get_weight("text.factual.wikipedia_supported")
+_W_UNVERIFIED            = get_weight("text.factual.unverified")
+
 
 @dataclass
 class FactualCheckResult:
@@ -141,7 +152,7 @@ def _compute_score(result: FactualCheckResult) -> float:
     on top of zero credit, capped so the score never goes negative.
     """
     if result.claims_checked == 0:
-        return 70.0
+        return _DEFAULT_SCORE
 
     weighted_sum = 0.0
     for d in result.details:
@@ -149,14 +160,14 @@ def _compute_score(result: FactualCheckResult) -> float:
         source  = d.get("source", "none")
 
         if verdict == "supported":
-            weighted_sum += 1.00 if source == "duckdb" else 0.90
+            weighted_sum += _W_DUCKDB_SUPPORTED if source == "duckdb" else _W_WIKIPEDIA_SUPPORTED
         elif verdict == "unverified":
-            weighted_sum += 0.50
+            weighted_sum += _W_UNVERIFIED
         # "contradicted" and "no_source" → 0.0
 
     raw = weighted_sum / result.claims_checked
     base_score = round(raw * 100, 1)
 
     # Contradiction penalty
-    penalty = result.contradicted * 15.0
+    penalty = result.contradicted * _CONTRADICTION_PENALTY
     return max(0.0, base_score - penalty)

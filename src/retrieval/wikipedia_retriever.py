@@ -11,6 +11,8 @@ from functools import lru_cache
 import requests
 from dotenv import load_dotenv
 
+from utils.text_utils import word_overlap
+
 load_dotenv()
 
 WIKI_USER_AGENT = os.getenv("WIKI_USER_AGENT", "AIRealityCheck/1.0")
@@ -116,9 +118,7 @@ def verify_claim_against_wiki(claim: str) -> dict:
         }
 
     # Simple overlap heuristic — a real system would use embeddings
-    claim_words = set(re.findall(r"\w+", claim.lower()))
-    summary_words = set(re.findall(r"\w+", wiki["summary"].lower()))
-    overlap = len(claim_words & summary_words) / max(len(claim_words), 1)
+    overlap = word_overlap(claim, wiki["summary"])
 
     verdict = "supported" if overlap >= 0.25 else "unverified"
 

@@ -21,6 +21,8 @@ from PIL import Image
 
 from image_evaluator import evaluate_image
 from image_evaluator.datatypes import ImageEvaluationReport
+from utils.scoring_utils import score_to_color
+from utils.cache_utils import make_cache_key
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -127,11 +129,32 @@ if run_btn and uploaded:
 if st.session_state.get("img_evaluating") and uploaded:
     image_bytes = uploaded.read()
 
+    # ── Cache lookup ─────────────────────────────────────────────────────────
+    # Key = sha256(image_bytes ‖ caption) so the same image with a different
+    # caption gets a separate cache entry (consistency result would differ).
+    _caption_for_key = st.session_state.get("img_caption", "")
+    _cache_key = make_cache_key(image_bytes, _caption_for_key)
+
+    if "img_cache" not in st.session_state:
+        st.session_state["img_cache"] = {}
+
+    if _cache_key in st.session_state["img_cache"]:
+        # Serve from cache — skip the entire pipeline
+        st.info("Result served from cache (same image + caption evaluated before).")
+        st.session_state["img_report"]     = st.session_state["img_cache"][_cache_key]
+        st.session_state["img_bytes"]      = image_bytes
+        st.session_state["img_evaluating"] = False
+        st.rerun()
+
+    # Cache miss — run the full pipeline
     with st.status("Analysing image…", expanded=True, state="running") as status:
 
         def _cancelled() -> bool:
             return st.session_state.get("img_cancel", False)
 
+        # ── Phase 1: metadata (fast, ~0.1 s) — always runs first ─────────────
+        # Running metadata before the heavier steps lets us detect AI-generator
+        # software tags and skip the AI classifier entirely when found.
         st.write("⬜ Step 1 — Reading metadata …")
         from image_evaluator import metadata_checker
         meta_result = metadata_checker.run(image_bytes)
@@ -141,33 +164,74 @@ if st.session_state.get("img_evaluating") and uploaded:
             st.stop()
         st.write("✅ Step 1 — Metadata")
 
-        st.write("⬜ Step 2 — Pixel forensics …")
-        from image_evaluator import pixel_forensics
-        pixel_result = pixel_forensics.run(image_bytes)
-        if _cancelled():
-            status.update(label="Cancelled.", state="error", expanded=False)
-            st.session_state["img_evaluating"] = False
-            st.stop()
-        st.write("✅ Step 2 — Pixel forensics")
+        # ── Phase 2: parallel pixel + AI (or early exit) ──────────────────────
+        from concurrent.futures import ThreadPoolExecutor
+        from image_evaluator import pixel_forensics, ai_artifact_classifier
+        from image_evaluator.datatypes import AIArtifactResult, ConsistencyResult
 
-        st.write("⬜ Step 3 — AI artefact classification …")
-        from image_evaluator import ai_artifact_classifier
-        ai_result = ai_artifact_classifier.run(image_bytes)
-        if _cancelled():
-            status.update(label="Cancelled.", state="error", expanded=False)
-            st.session_state["img_evaluating"] = False
-            st.stop()
-        st.write("✅ Step 3 — AI artefact classifier")
+        if meta_result.detected_ai_generator:
+            # ── Early exit: metadata already confirms AI origin ───────────────
+            # Pixel forensics still runs — needed for editing_likelihood.
+            # AI classifier is skipped; ai_prob is set to 1.0 (certainty).
+            # Consistency (CLIP) is skipped — irrelevant for confirmed AI.
+            gen_name = meta_result.detected_ai_generator
+            st.write(
+                f"⚡ Early exit — AI generator confirmed in metadata: **{gen_name}**"
+            )
 
-        if caption and caption.strip():
-            st.write("⬜ Step 4 — Image–text consistency …")
-            from image_evaluator import image_text_consistency
-            consistency_result = image_text_consistency.run(image_bytes, caption=caption.strip())
-            st.write("✅ Step 4 — Consistency check")
-        else:
-            from image_evaluator.datatypes import ConsistencyResult
+            st.write("⬜ Step 2 — Pixel forensics …")
+            pixel_result = pixel_forensics.run(image_bytes)
+            if _cancelled():
+                status.update(label="Cancelled.", state="error", expanded=False)
+                st.session_state["img_evaluating"] = False
+                st.stop()
+            st.write("✅ Step 2 — Pixel forensics")
+
+            ai_result = AIArtifactResult(
+                ai_prob         = 1.0,
+                confidence_band = 0.0,   # zero uncertainty — metadata is definitive
+                method          = f"metadata:ai_generator",
+                features        = [
+                    f"AI generation software confirmed in metadata: '{gen_name}'",
+                    "AI classifier skipped — metadata evidence is definitive",
+                ],
+                features_dict   = {
+                    "metadata_ai_generator": gen_name,
+                    "ai_prob_final":         1.0,
+                    "confidence_band":       0.0,
+                },
+            )
+            st.write(f"⏭️ Step 3 — Skipped (AI origin confirmed: {gen_name})")
+
             consistency_result = ConsistencyResult(ran=False)
-            st.write("⏭️ Step 4 — Skipped (no caption)")
+            st.write("⏭️ Step 4 — Skipped (AI origin confirmed)")
+
+        else:
+            # ── Normal path: pixel forensics + AI classifier in parallel ──────
+            st.write("⬜ Steps 2–3 — Parallel analysis (pixel forensics · AI classifier) …")
+            with ThreadPoolExecutor(max_workers=2) as _pool:
+                _fut_pixel = _pool.submit(pixel_forensics.run,        image_bytes)
+                _fut_ai    = _pool.submit(ai_artifact_classifier.run, image_bytes)
+                pixel_result = _fut_pixel.result()
+                ai_result    = _fut_ai.result()
+
+            if _cancelled():
+                status.update(label="Cancelled.", state="error", expanded=False)
+                st.session_state["img_evaluating"] = False
+                st.stop()
+            st.write("✅ Step 2 — Pixel forensics")
+            st.write("✅ Step 3 — AI artefact classifier")
+
+            if caption and caption.strip():
+                st.write("⬜ Step 4 — Image–text consistency …")
+                from image_evaluator import image_text_consistency
+                consistency_result = image_text_consistency.run(
+                    image_bytes, caption=caption.strip()
+                )
+                st.write("✅ Step 4 — Consistency check")
+            else:
+                consistency_result = ConsistencyResult(ran=False)
+                st.write("⏭️ Step 4 — Skipped (no caption)")
 
         if _cancelled():
             status.update(label="Cancelled.", state="error", expanded=False)
@@ -184,12 +248,14 @@ if st.session_state.get("img_evaluating") and uploaded:
 
         st.write("⬜ Aggregating scores …")
         from image_evaluator import image_scoring
+        detected_type = image_scoring.detect_image_type(image_bytes)
         report: ImageEvaluationReport = image_scoring.aggregate(
             metadata       = meta_result,
             pixel          = pixel_result,
             ai_artifact    = ai_result,
             consistency    = consistency_result,
             reverse_search = reverse_result,
+            image_type     = detected_type,
         )
         st.write("✅ Done")
         status.update(label="Evaluation complete", state="complete", expanded=False)
@@ -197,6 +263,9 @@ if st.session_state.get("img_evaluating") and uploaded:
     st.session_state["img_report"]     = report
     st.session_state["img_bytes"]      = image_bytes
     st.session_state["img_evaluating"] = False
+
+    # ── Write to cache ───────────────────────────────────────────────────────
+    st.session_state["img_cache"][_cache_key] = report
 
     # ── Append to history ────────────────────────────────────────────────────
     st.session_state["img_history"].append({
@@ -235,37 +304,73 @@ if report and img_bytes:
         m1, m2, m3 = st.columns(3)
 
         def _colour(val: float, invert: bool = False) -> str:
-            v = (100 - val) if invert else val
-            if v >= 70: return "#4ade80"
-            if v >= 45: return "#fbbf24"
-            return "#f87171"
+            return score_to_color(val, invert=invert)
 
         with m1:
-            c = _colour(report.authenticity_score)
+            c         = _colour(report.authenticity_score)
+            auth_band = round(report.authenticity_band)
             st.markdown(
                 f"<div style='font-size:.8rem;color:#aaa'>Authenticity</div>"
                 f"<div style='font-size:2.2rem;font-weight:800;color:{c}'>"
-                f"{report.authenticity_score:.0f}<span style='font-size:1rem'>/100</span></div>",
+                f"{report.authenticity_score:.0f}"
+                f"<span style='font-size:1rem'>/100</span></div>"
+                f"<div style='font-size:.72rem;color:#6b7280'>± {auth_band} pts</div>",
                 unsafe_allow_html=True,
             )
         with m2:
-            c = _colour(report.ai_likelihood, invert=True)
+            c           = _colour(report.ai_likelihood, invert=True)
+            ai_band_pct = round(report.ai_likelihood_band)
             st.markdown(
                 f"<div style='font-size:.8rem;color:#aaa'>AI Likelihood</div>"
                 f"<div style='font-size:2.2rem;font-weight:800;color:{c}'>"
-                f"{report.ai_likelihood:.0f}<span style='font-size:1rem'>%</span></div>",
+                f"{report.ai_likelihood:.0f}<span style='font-size:1rem'>%</span></div>"
+                f"<div style='font-size:.72rem;color:#6b7280'>± {ai_band_pct}%</div>",
                 unsafe_allow_html=True,
             )
         with m3:
-            c = _colour(report.editing_likelihood, invert=True)
+            c         = _colour(report.editing_likelihood, invert=True)
+            edit_band = round(report.editing_likelihood_band)
             st.markdown(
                 f"<div style='font-size:.8rem;color:#aaa'>Editing Likelihood</div>"
                 f"<div style='font-size:2.2rem;font-weight:800;color:{c}'>"
-                f"{report.editing_likelihood:.0f}<span style='font-size:1rem'>%</span></div>",
+                f"{report.editing_likelihood:.0f}<span style='font-size:1rem'>%</span></div>"
+                f"<div style='font-size:.72rem;color:#6b7280'>± {edit_band}%</div>",
                 unsafe_allow_html=True,
             )
 
         st.markdown("<br>", unsafe_allow_html=True)
+
+        # OOD warning — shown when CLIP detects an image style outside the
+        # AI detector's training distribution (anime, 3D render, illustration, screenshot)
+        ood_warn = report.evidence.get("ood_warning", "")
+        if ood_warn:
+            st.warning(ood_warn)
+
+        # Detected image-type badge
+        img_type = report.evidence.get("image_type", "photo")
+        type_icon = {"photo": "📷", "illustration": "🎨", "screenshot": "🖥️"}.get(img_type, "📷")
+        st.markdown(
+            f"<div style='font-size:.78rem;color:#9ca3af;margin-bottom:6px'>"
+            f"Detected type: <span style='color:#e5e7eb;font-weight:600'>"
+            f"{type_icon} {img_type.capitalize()}</span>"
+            f" &nbsp;·&nbsp; weights adjusted accordingly</div>",
+            unsafe_allow_html=True,
+        )
+
+        # Top signals
+        top_sigs = report.top_signals
+        if top_sigs:
+            st.markdown(
+                "<div style='font-size:.78rem;color:#9ca3af;text-transform:uppercase;"
+                "letter-spacing:.06em;margin:10px 0 4px'>Key signals</div>",
+                unsafe_allow_html=True,
+            )
+            for sig in top_sigs:
+                st.markdown(
+                    f"<div class='flag-item' style='padding:2px 0'>⚠ {sig}</div>",
+                    unsafe_allow_html=True,
+                )
+            st.markdown("<div style='margin-bottom:6px'></div>", unsafe_allow_html=True)
 
         # Component score breakdown
         comp = report.evidence.get("component_scores", {})
@@ -288,6 +393,10 @@ if report and img_bytes:
                     unsafe_allow_html=True,
                 )
 
+    # ── Explanation ──────────────────────────────────────────────────────────
+    if getattr(report, "explanation", ""):
+        st.info(report.explanation)
+
     # ── Evidence tabs ─────────────────────────────────────────────────────────
     st.markdown("### 🔬 Evidence Breakdown")
     ev = report.evidence
@@ -300,6 +409,9 @@ if report and img_bytes:
     ])
 
     with tab_meta:
+        img_type = ev.get("image_type", "photo")
+        type_icon = {"photo": "📷", "illustration": "🎨", "screenshot": "🖥️"}.get(img_type, "📷")
+        st.caption(f"Detected image type: {type_icon} **{img_type.capitalize()}**")
         flags = ev.get("metadata_flags", [])
         if flags:
             for f in flags:
@@ -316,7 +428,15 @@ if report and img_bytes:
             st.markdown('<div class="ok-item">✓ No pixel-level artefacts detected</div>', unsafe_allow_html=True)
 
     with tab_ai:
-        st.caption(f"Method: **{ev.get('ai_method', 'heuristic')}**")
+        ood = ev.get("ood_warning", "")
+        if ood:
+            st.warning(ood)
+        method = ev.get("ai_method", "heuristic")
+        band   = ev.get("ai_confidence_band", 0.0)
+        st.caption(
+            f"Method: **{method}** &nbsp;|&nbsp; "
+            f"Confidence band: **± {band * 100:.0f}%**"
+        )
         feats = ev.get("ai_artifact_features", [])
         for feat in feats:
             st.markdown(f'<div class="feat-item">• {feat}</div>', unsafe_allow_html=True)

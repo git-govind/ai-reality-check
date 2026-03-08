@@ -8,6 +8,29 @@ import re
 from dataclasses import dataclass, field
 from typing import List
 
+from config_loader import get_threshold, get_weight
+from utils.text_utils import split_sentences
+
+# ---------------------------------------------------------------------------
+# Config-driven constants (loaded once at import time)
+# ---------------------------------------------------------------------------
+_DEFAULT_COMPLETENESS  = get_threshold("text.clarity.default_completeness")
+_COMPLETENESS_SCALE    = get_threshold("text.clarity.completeness_scale")
+_LOW_OVERLAP_THRESHOLD = get_threshold("text.clarity.low_overlap_threshold")
+_SHORT_RESPONSE_WORDS  = int(get_threshold("text.clarity.short_response_words"))
+_SHORT_RESPONSE_CAP    = get_threshold("text.clarity.short_response_cap")
+_LONG_RESPONSE_WORDS   = int(get_threshold("text.clarity.long_response_words"))
+_LONG_SENTENCE_WORDS   = get_threshold("text.clarity.long_sentence_words")
+_LONG_SENTENCE_PENALTY = get_threshold("text.clarity.long_sentence_penalty")
+_VAGUE_PHRASE_COUNT    = int(get_threshold("text.clarity.vague_phrase_count"))
+_VAGUE_PENALTY         = get_threshold("text.clarity.vague_phrase_penalty")
+_VAGUE_MAX_PENALTY     = get_threshold("text.clarity.vague_phrase_max_penalty")
+_FILLER_PENALTY        = get_threshold("text.clarity.filler_penalty")
+_FILLER_MAX_PENALTY    = get_threshold("text.clarity.filler_max_penalty")
+_STRUCTURAL_BONUS      = get_threshold("text.clarity.structural_bonus")
+_W_COMPLETENESS        = get_weight("text.clarity.completeness_weight")
+_W_CLARITY             = get_weight("text.clarity.clarity_weight")
+
 
 @dataclass
 class ClarityResult:
@@ -72,17 +95,17 @@ def _completeness(prompt: str, response: str) -> tuple[float, list[str]]:
     response_words = set(re.findall(r"\b[a-z]{4,}\b", response.lower()))
 
     if not prompt_keywords:
-        return 70.0, issues
+        return _DEFAULT_COMPLETENESS, issues
 
     overlap = len(prompt_keywords & response_words) / len(prompt_keywords)
-    score = min(100.0, overlap * 130)  # generous scaling
+    score = min(100.0, overlap * _COMPLETENESS_SCALE)  # generous scaling
 
-    if overlap < 0.3:
+    if overlap < _LOW_OVERLAP_THRESHOLD:
         issues.append("Response may not address the key topics in the prompt.")
-    if len(response.split()) < 30:
+    if len(response.split()) < _SHORT_RESPONSE_WORDS:
         issues.append("Response is very short — may be incomplete.")
-        score = min(score, 55.0)
-    if len(response.split()) > 600:
+        score = min(score, _SHORT_RESPONSE_CAP)
+    if len(response.split()) > _LONG_RESPONSE_WORDS:
         issues.append("Response is very long — may contain padding or off-topic content.")
 
     return round(score, 1), issues
@@ -91,7 +114,7 @@ def _completeness(prompt: str, response: str) -> tuple[float, list[str]]:
 def _clarity(text: str) -> tuple[float, list[str]]:
     """Score readability and flag vague / filler language."""
     issues = []
-    sentences = [s.strip() for s in re.split(r"[.!?]+", text) if s.strip()]
+    sentences = split_sentences(text)
     words = text.split()
     word_count = len(words)
     sent_count = max(len(sentences), 1)
@@ -100,25 +123,25 @@ def _clarity(text: str) -> tuple[float, list[str]]:
     score = 100.0
 
     # Penalize very long sentences (hard to read)
-    if avg_len > 35:
+    if avg_len > _LONG_SENTENCE_WORDS:
         issues.append(f"Average sentence length is {avg_len:.0f} words — consider shorter sentences.")
-        score -= 10
+        score -= _LONG_SENTENCE_PENALTY
 
     # Vague phrases
     vague = [p for p in _VAGUE_PHRASES if re.search(p, text, re.I)]
-    if len(vague) > 2:
+    if len(vague) > _VAGUE_PHRASE_COUNT:
         issues.append(f"{len(vague)} vague qualifiers found (e.g. 'it depends', 'maybe').")
-        score -= min(20, len(vague) * 4)
+        score -= min(_VAGUE_MAX_PENALTY, len(vague) * _VAGUE_PENALTY)
 
     # Filler patterns (AI speak)
     fillers = [p for p in _FILLER_PATTERNS if re.search(p, text, re.I)]
     if fillers:
         issues.append(f"{len(fillers)} filler phrase(s) detected (e.g. 'As an AI', 'Great question').")
-        score -= min(15, len(fillers) * 5)
+        score -= min(_FILLER_MAX_PENALTY, len(fillers) * _FILLER_PENALTY)
 
     # Structural bonus
     if _count_structure(text):
-        score = min(100.0, score + 5)
+        score = min(100.0, score + _STRUCTURAL_BONUS)
 
     return max(0.0, round(score, 1)), issues
 
@@ -127,7 +150,7 @@ def run(prompt: str, ai_response: str) -> ClarityResult:
     """Evaluate completeness and clarity of the AI's response."""
     result = ClarityResult()
 
-    sentences = [s.strip() for s in re.split(r"[.!?]+", ai_response) if s.strip()]
+    sentences = split_sentences(ai_response)
     result.word_count = len(ai_response.split())
     result.sentence_count = len(sentences)
     result.avg_sentence_len = result.word_count / max(result.sentence_count, 1)
@@ -140,6 +163,5 @@ def run(prompt: str, ai_response: str) -> ClarityResult:
     result.clarity_score = cl_score
     result.issues = c_issues + cl_issues
 
-    # Final: 60% completeness, 40% clarity
-    result.score = round(0.6 * c_score + 0.4 * cl_score, 1)
+    result.score = round(_W_COMPLETENESS * c_score + _W_CLARITY * cl_score, 1)
     return result

@@ -61,6 +61,7 @@ with tab_text:
             })
 
         df = pd.DataFrame(rows)
+        df.index = range(1, len(df) + 1)
 
         # ── Summary metrics ──────────────────────────────────────────────────
         col1, col2, col3, col4 = st.columns(4)
@@ -146,6 +147,7 @@ with tab_image:
             })
 
         idf = pd.DataFrame(irows)
+        idf.index = range(1, len(idf) + 1)
 
         # ── Summary metrics ──────────────────────────────────────────────────
         ic1, ic2, ic3, ic4, ic5 = st.columns(5)

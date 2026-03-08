@@ -20,6 +20,7 @@ torch>=2.2.2
 # Data handling
 pandas>=2.2.1
 numpy>=1.26.4
+Pillow>=10.0.0
 pydantic>=2.6.4
 
 # Utilities
@@ -27,3 +28,4 @@ python-dotenv>=1.0.1
 requests>=2.31.0
 tenacity>=8.2.3
 colorama>=0.4.6
+PyYAML>=6.0.1

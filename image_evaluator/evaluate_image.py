@@ -41,6 +41,8 @@ from . import (
     reverse_image_search,
 )
 from .datatypes import ImageEvaluationReport
+from profiler import get_timings, reset
+from utils.logging_utils import timer
 
 
 def evaluate_image(
@@ -80,28 +82,37 @@ def evaluate_image(
     When a step is skipped its weight is redistributed proportionally among
     the remaining steps so the final score is always on the 0–100 scale.
     """
+    reset()
+
     # ── Step 1: Metadata ────────────────────────────────────────────────────
-    meta_result = metadata_checker.run(image_bytes)
+    with timer("metadata"):
+        meta_result = metadata_checker.run(image_bytes)
 
     # ── Step 2: Pixel forensics ─────────────────────────────────────────────
-    pixel_result = pixel_forensics.run(image_bytes)
+    with timer("pixel_forensics"):
+        pixel_result = pixel_forensics.run(image_bytes)
 
     # ── Step 3: AI artifact classification ──────────────────────────────────
-    ai_result = ai_artifact_classifier.run(image_bytes)
+    with timer("ai_artifact"):
+        ai_result = ai_artifact_classifier.run(image_bytes)
 
     # ── Step 4: Image–text consistency (optional) ───────────────────────────
-    consistency_result = image_text_consistency.run(image_bytes, caption=caption)
+    with timer("consistency"):
+        consistency_result = image_text_consistency.run(image_bytes, caption=caption)
 
     # ── Step 5: Reverse image search (optional) ─────────────────────────────
-    reverse_result = reverse_image_search.run(image_bytes)
+    with timer("reverse_search"):
+        reverse_result = reverse_image_search.run(image_bytes)
 
     # ── Scoring ─────────────────────────────────────────────────────────────
-    report = image_scoring.aggregate(
-        metadata       = meta_result,
-        pixel          = pixel_result,
-        ai_artifact    = ai_result,
-        consistency    = consistency_result,
-        reverse_search = reverse_result,
-    )
+    with timer("aggregate"):
+        report = image_scoring.aggregate(
+            metadata       = meta_result,
+            pixel          = pixel_result,
+            ai_artifact    = ai_result,
+            consistency    = consistency_result,
+            reverse_search = reverse_result,
+        )
 
+    report.metadata["timings"] = get_timings()
     return report

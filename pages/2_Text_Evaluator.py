@@ -19,6 +19,7 @@ load_dotenv(os.path.join(_ROOT, ".env"))
 import streamlit as st
 from src.llm.response_generator import MODEL_REGISTRY, detect_backend, generate_response, list_available_models
 from src.utils.pipeline import evaluate
+from utils.scoring_utils import score_to_color
 
 # ── Page config ────────────────────────────────────────────────
 st.set_page_config(
@@ -228,11 +229,7 @@ with col_btn2:
 
 # ── Score card helper ──────────────────────────────────────────
 def _color(score: float) -> str:
-    if score >= 78:
-        return "#4ade80"
-    if score >= 55:
-        return "#fb923c"
-    return "#f87171"
+    return score_to_color(score, thresholds=(78, 55), colors=("#4ade80", "#fb923c", "#f87171"))
 
 
 def _render_score_bar(label: str, score: float):
@@ -268,6 +265,10 @@ def _render_report(report, model_name: str, response: str, prompt: str):
     )
 
     st.divider()
+
+    # ── Explanation ──
+    if getattr(report, "explanation", ""):
+        st.info(report.explanation)
 
     # ── Score grid ──
     c1, c2, c3 = st.columns(3)

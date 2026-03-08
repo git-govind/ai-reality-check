@@ -13,9 +13,23 @@ from src.evaluation.consistency_checker import ConsistencyResult
 from src.evaluation.bias_safety_checker import BiasResult
 from src.evaluation.clarity_scorer import ClarityResult
 
+from config_loader import get_feature, get_threshold, get_weight
+from evaluation_report_base import EvaluationReportBase
+from explanation_generator import generate_explanation
+
+# ---------------------------------------------------------------------------
+# Config-driven constants (loaded once at import time)
+# ---------------------------------------------------------------------------
+_GRADE_A      = get_threshold("text.grade.a")
+_GRADE_B      = get_threshold("text.grade.b")
+_GRADE_C      = get_threshold("text.grade.c")
+_GRADE_D      = get_threshold("text.grade.d")
+_COLOR_GREEN  = get_threshold("text.score_color.green")
+_COLOR_ORANGE = get_threshold("text.score_color.orange")
+
 
 @dataclass
-class EvaluationReport:
+class EvaluationReport(EvaluationReportBase):
     # Sub-scores (0–100)
     accuracy_score: float = 0.0
     consistency_score: float = 0.0
@@ -36,9 +50,6 @@ class EvaluationReport:
     bias_safety_summary: str = ""
     clarity_summary: str = ""
 
-    # All issues collected across checkers
-    all_issues: list[str] = None  # type: ignore[assignment]
-
     # Raw detail data (claim-level facts)
     factual_details: list[dict] = None  # type: ignore[assignment]
 
@@ -46,29 +57,37 @@ class EvaluationReport:
     critique_text: str = ""
 
     def __post_init__(self):
-        if self.all_issues is None:
-            self.all_issues = []
         if self.factual_details is None:
             self.factual_details = []
 
+    # Backward-compat alias: code that reads/writes report.all_issues
+    # transparently maps to the base-class `issues` list.
+    @property
+    def all_issues(self) -> list[str]:
+        return self.issues
+
+    @all_issues.setter
+    def all_issues(self, value: list[str]) -> None:
+        self.issues = value
+
     def grade_label(self) -> str:
         s = self.confidence_score
-        if s >= 90:
+        if s >= _GRADE_A:
             return "A — Excellent"
-        if s >= 78:
+        if s >= _GRADE_B:
             return "B — Good"
-        if s >= 65:
+        if s >= _GRADE_C:
             return "C — Acceptable"
-        if s >= 50:
+        if s >= _GRADE_D:
             return "D — Needs Improvement"
         return "F — Poor / Unsafe"
 
     def color(self) -> str:
         """Streamlit-friendly color string for the confidence score."""
         s = self.confidence_score
-        if s >= 78:
+        if s >= _COLOR_GREEN:
             return "green"
-        if s >= 55:
+        if s >= _COLOR_ORANGE:
             return "orange"
         return "red"
 
@@ -99,12 +118,12 @@ class EvaluationReport:
 
 # Weights must sum to 1.0
 _WEIGHTS = {
-    "accuracy": 0.30,
-    "consistency": 0.20,
-    "safety": 0.20,
-    "bias": 0.10,
-    "clarity": 0.10,
-    "completeness": 0.10,
+    "accuracy":     get_weight("text.scoring.accuracy"),
+    "consistency":  get_weight("text.scoring.consistency"),
+    "safety":       get_weight("text.scoring.safety"),
+    "bias":         get_weight("text.scoring.bias"),
+    "clarity":      get_weight("text.scoring.clarity"),
+    "completeness": get_weight("text.scoring.completeness"),
 }
 
 
@@ -152,5 +171,61 @@ def aggregate(
     issues.extend(f"[Safety] {i}" for i in bias.safety_flags)
     issues.extend(f"[Clarity] {i}" for i in clarity.issues)
     report.all_issues = issues
+
+    report.explanation = generate_explanation(report)
+
+    if get_feature("debug"):
+        report.metadata["debug"] = {
+            "intermediate_scores": {
+                "accuracy":              factual.score,
+                "consistency":           consistency.score,
+                "heuristic_consistency": consistency.heuristic_score,
+                "llm_consistency":       consistency.llm_score,    # None if LLM skipped
+                "safety":                bias.safety_score,
+                "bias":                  bias.bias_score,
+                "clarity":               clarity.clarity_score,
+                "completeness":          clarity.completeness_score,
+            },
+            "weighted_contributions": {
+                k: round(v * _WEIGHTS[k_map], 1)
+                for k, v, k_map in [
+                    ("accuracy",     factual.score,              "accuracy"),
+                    ("consistency",  consistency.score,          "consistency"),
+                    ("safety",       bias.safety_score,          "safety"),
+                    ("bias",         bias.bias_score,            "bias"),
+                    ("clarity",      clarity.clarity_score,      "clarity"),
+                    ("completeness", clarity.completeness_score, "completeness"),
+                ]
+            },
+            "raw_evidence": {
+                "claims_checked":      factual.claims_checked,
+                "claims_supported":    factual.supported,
+                "claims_contradicted": factual.contradicted,
+                "claims_unverified":   factual.unverified,
+                "factual_details":     factual.details,
+                "consistency_issues":  consistency.issues,
+                "critique_text":       consistency.critique_text,
+                "bias_flags":          bias.bias_flags,
+                "safety_flags":        bias.safety_flags,
+                "word_count":          clarity.word_count,
+                "sentence_count":      clarity.sentence_count,
+                "avg_sentence_len":    clarity.avg_sentence_len,
+                "has_structure":       clarity.has_structure,
+            },
+            "thresholds_used": {
+                "grades":       {"A": _GRADE_A, "B": _GRADE_B, "C": _GRADE_C, "D": _GRADE_D},
+                "weights":      dict(_WEIGHTS),
+                "score_colors": {"green": _COLOR_GREEN, "orange": _COLOR_ORANGE},
+            },
+            "module_decisions": {
+                "llm_consistency_ran": consistency.llm_score is not None,
+                "llm_bias_enabled":    get_feature("text.llm_bias_check"),
+                "consistency_blend":   (
+                    "heuristic+llm"
+                    if consistency.llm_score is not None
+                    else "heuristic-only"
+                ),
+            },
+        }
 
     return report

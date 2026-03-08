@@ -1,0 +1,96 @@
+# ---------------------------------------------------------------------------
+# weights.yaml — combination weights for the AI Reality Check pipeline
+#
+# A "weight" is any numeric coefficient used in a linear combination of scores.
+# All per-category weight sets should sum to 1.0 unless noted otherwise.
+# ---------------------------------------------------------------------------
+
+# ── Image pipeline ───────────────────────────────────────────────────────────
+
+image:
+
+  # Per-type authenticity scoring weights.
+  # Optional steps (consistency, reverse) have their weight redistributed
+  # among active components when they are skipped.
+  scoring_weights:
+    photo:
+      metadata:    0.20
+      pixel:       0.25
+      ai:          0.35
+      consistency: 0.10
+      reverse:     0.10
+    illustration:
+      metadata:    0.30    # more signal from metadata when no camera sensor
+      pixel:       0.30    # pixel artefacts still informative
+      ai:          0.20    # classifier less reliable for stylised artwork
+      consistency: 0.10
+      reverse:     0.10
+    screenshot:
+      metadata:    0.50    # metadata dominates for UI captures
+      pixel:       0.20
+      ai:          0.10    # AI detection near-meaningless for screenshots
+      consistency: 0.10
+      reverse:     0.10
+
+  # Editing likelihood formula: editing = ela_weight × ela_badness + metadata_weight × metadata_edit_penalty
+  editing_likelihood:
+    ela_weight:      0.60  # ELA is the primary forensic signal
+    metadata_weight: 0.40  # metadata corroborates but is easily stripped
+
+  # Pixel forensics sub-score formula weights (sum = 1.0):
+  # pixel_score = 100 − (ela×W_ela + ghost×W_ghost + noise×W_noise + fft×W_fft)
+  pixel_formula:
+    ela:         0.30
+    ghost:       0.20
+    noise:       0.25
+    fft:         0.25
+    # Within the noise sub-score:
+    # noise_bad = noise_patch × patch_noise_bad + noise_block × block_cv_bad
+    noise_patch: 0.60   # patch-level (local noise statistics)
+    noise_block: 0.40   # 16-block macro consistency
+
+  # AI classifier combination weights
+  # When HuggingFace model is available:
+  #   ai_prob = model_weight × model_prob + heuristic_weight × heuristic_blend
+  # Heuristic blend (both paths):
+  #   heuristic_blend = heuristic_mean × heuristic_mean + freqnet_weight × freqnet_prob
+  ai_classifier:
+    model_weight:      0.80   # HuggingFace model dominates
+    heuristic_weight:  0.20   # heuristic blend is supporting evidence
+    heuristic_mean:    0.70   # within heuristic blend: share from six heuristics
+    freqnet_weight:    0.30   # within heuristic blend: share from FreqNet
+
+# ── Text pipeline ────────────────────────────────────────────────────────────
+
+text:
+
+  # Final confidence score weights (must sum exactly to 1.0)
+  scoring:
+    accuracy:     0.30
+    consistency:  0.20
+    safety:       0.20
+    bias:         0.10
+    clarity:      0.10
+    completeness: 0.10
+
+  # Factual verdict credit per claim (used in weighted_sum / claims_checked)
+  factual:
+    duckdb_supported:     1.00   # high-confidence structured DB match
+    wikipedia_supported:  0.90   # good but unstructured source
+    unverified:           0.50   # no corroborating source found
+    # "contradicted" and "no_source" contribute 0.0 (hardcoded; not configurable)
+
+  # Logical consistency blend (heuristic + LLM critique)
+  consistency:
+    heuristic_weight: 0.30
+    llm_weight:       0.70
+
+  # Bias check blend (rule-based + LLM)
+  bias:
+    rule_weight: 0.40
+    llm_weight:  0.60
+
+  # Clarity module final score blend
+  clarity:
+    completeness_weight: 0.60
+    clarity_weight:      0.40

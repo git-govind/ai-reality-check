@@ -60,12 +60,15 @@ from typing import Any
 
 import duckdb
 
+from config_loader import get_threshold
+from utils.text_utils import word_overlap
+
 # ── DB path ────────────────────────────────────────────────────────────────────
 _DB_PATH = Path(os.getenv("DUCKDB_PATH", "data/facts.db"))
 
 # ── Thresholds ─────────────────────────────────────────────────────────────────
-_SUPPORT_THRESHOLD     = 0.40   # word-overlap ratio to call a claim "supported"
-_CONTRADICT_THRESHOLD  = 0.20   # minimum overlap to attempt contradiction check
+_SUPPORT_THRESHOLD     = get_threshold("text.duckdb.support_threshold")    # word-overlap ratio to call a claim "supported"
+_CONTRADICT_THRESHOLD  = get_threshold("text.duckdb.contradict_threshold") # minimum overlap to attempt contradiction check
 
 
 # ── Seed data ──────────────────────────────────────────────────────────────────
@@ -208,15 +211,6 @@ def _extract_keywords(text: str) -> list[str]:
     return list(dict.fromkeys(keywords))  # preserve order, dedupe
 
 
-def _word_overlap(text_a: str, text_b: str) -> float:
-    """Jaccard-style word overlap between two strings (lower-cased)."""
-    a = set(re.findall(r"\w+", text_a.lower()))
-    b = set(re.findall(r"\w+", text_b.lower()))
-    if not a:
-        return 0.0
-    return len(a & b) / len(a)
-
-
 def _rows_to_dicts(rows: list[tuple]) -> list[dict[str, Any]]:
     return [{"entity": r[0], "attribute": r[1], "value": r[2]} for r in rows]
 
@@ -278,7 +272,7 @@ def verify_claim_against_duckdb(claim: str) -> DuckDBCheckResult:
 
         # Score each row against the claim, pick the best
         scored = [
-            (row, _word_overlap(claim, f"{row['entity']} {row['attribute']} {row['value']}"))
+            (row, word_overlap(claim, f"{row['entity']} {row['attribute']} {row['value']}"))
             for row in row_dicts
         ]
         scored.sort(key=lambda x: x[1], reverse=True)

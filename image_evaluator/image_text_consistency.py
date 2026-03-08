@@ -41,6 +41,7 @@ import numpy as np
 from PIL import Image
 
 from .datatypes import ConsistencyResult
+from models.embeddings_registry import get_model as _get_embedding_model
 
 # ---------------------------------------------------------------------------
 # Colour names used in heuristic path
@@ -69,31 +70,6 @@ _STOP_WORDS = {
     "that", "there", "their", "they", "has", "have", "be", "been",
     "by", "from", "as", "which", "who", "very", "quite", "just",
 }
-
-# ---------------------------------------------------------------------------
-# CLIP loading (shared with ai_artifact_classifier)
-# ---------------------------------------------------------------------------
-
-_CLIP_MODEL  = None
-_CLIP_LOADED = False
-_CLIP_AVAIL  = False
-
-
-def _try_load_clip() -> None:
-    global _CLIP_MODEL, _CLIP_LOADED, _CLIP_AVAIL
-    if _CLIP_LOADED:
-        return
-    _CLIP_LOADED = True
-    try:
-        import os
-        if os.getenv("SKIP_CLIP", "").strip() == "1":
-            return
-        from sentence_transformers import SentenceTransformer  # type: ignore
-        _CLIP_MODEL = SentenceTransformer("clip-ViT-B-32")
-        _CLIP_AVAIL = True
-    except Exception:
-        pass
-
 
 # ---------------------------------------------------------------------------
 # Model-based consistency
@@ -128,14 +104,15 @@ def _clip_consistency(img: Image.Image, caption: str) -> Tuple[float, List[str]]
 
     Returns (score 0-1, issues).
     """
-    if not _CLIP_AVAIL or _CLIP_MODEL is None:
+    clip = _get_embedding_model("clip-ViT-B-32")
+    if not clip.available or clip.model is None:
         return 0.5, []
 
     try:
         from sentence_transformers import util  # type: ignore
 
-        img_emb = _CLIP_MODEL.encode(img,     convert_to_tensor=True)
-        cap_emb = _CLIP_MODEL.encode(caption, convert_to_tensor=True)
+        img_emb = clip.model.encode(img,     convert_to_tensor=True)
+        cap_emb = clip.model.encode(caption, convert_to_tensor=True)
         overall = float(util.cos_sim(img_emb, cap_emb).item())
 
         # Map CLIP range ~[0.10, 0.35] → [0, 1]
@@ -179,7 +156,7 @@ def _clip_consistency(img: Image.Image, caption: str) -> Tuple[float, List[str]]
             chunk = chunk.strip()
             if len(chunk.split()) < 2:
                 continue
-            c_emb  = _CLIP_MODEL.encode(chunk, convert_to_tensor=True)
+            c_emb  = clip.model.encode(chunk, convert_to_tensor=True)
             c_sim  = float(util.cos_sim(img_emb, c_emb).item())
             c_norm = float(np.clip((c_sim - 0.10) / 0.25, 0.0, 1.0))
             if c_norm < 0.20:
@@ -310,8 +287,6 @@ def run(image_bytes: bytes, caption: str | None = None) -> ConsistencyResult:
     if not caption or not caption.strip():
         return ConsistencyResult(score=0.5, issues=[], ran=False)
 
-    _try_load_clip()
-
     try:
         img     = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         img_rgb = np.array(img, dtype=np.float32)
@@ -322,7 +297,7 @@ def run(image_bytes: bytes, caption: str | None = None) -> ConsistencyResult:
             ran=True,
         )
 
-    if _CLIP_AVAIL:
+    if _get_embedding_model("clip-ViT-B-32").available:
         score, issues = _clip_consistency(img, caption)
     else:
         score, issues = _keyword_consistency(img_rgb, caption)

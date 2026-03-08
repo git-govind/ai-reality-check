@@ -1,0 +1,43 @@
+# ---------------------------------------------------------------------------
+# features.yaml — feature flags for the AI Reality Check pipeline
+#
+# Boolean flags that enable or disable optional pipeline steps.
+# All flags default to true (fully enabled).
+#
+# Environment-variable overrides remain in effect:
+#   SKIP_HF_MODEL=1  → disables HuggingFace classifier regardless of this flag
+#   SKIP_CLIP_OOD=1  → disables CLIP OOD detection regardless of this flag
+# ---------------------------------------------------------------------------
+
+# When true, each pipeline step attaches a detailed diagnostic payload to
+# report.metadata["debug"].  The payload includes intermediate per-step scores,
+# raw evidence dicts, the exact thresholds used during scoring, and a record of
+# which branches (LLM vs rule-based, early-exit, etc.) were taken.
+# Set to false in production to keep report objects lean.
+debug: false
+
+image:
+  # Load and run the HuggingFace binary AI-image detector (ViT / ResNet50 ~350 MB).
+  # Disable on memory-constrained deployments; heuristic-only path activates automatically.
+  hf_model_enabled: true
+
+  # Load CLIP (openai/clip-vit-base-patch32 ~350 MB) to detect out-of-distribution image
+  # styles (anime, 3D renders, illustrations, screenshots) and emit an AI detector warning.
+  clip_ood_enabled: true
+
+  # Run pixel forensics and AI classifier concurrently (ThreadPoolExecutor).
+  # Set to false to run them sequentially — useful for debugging or reducing peak memory.
+  parallel_analysis: true
+
+  # When metadata confirms an AI-generator tag (Midjourney, Stable Diffusion, etc.),
+  # skip the AI classifier entirely and set ai_prob = 1.0 directly.
+  early_exit_on_ai_generator: true
+
+text:
+  # Run a second LLM pass to critique logical consistency.
+  # Falls back to heuristic-only scoring when false or when no model is provided.
+  llm_consistency_check: true
+
+  # Run an LLM pass for bias and safety analysis.
+  # Falls back to rule-based-only scoring when false or when no model is provided.
+  llm_bias_check: true
