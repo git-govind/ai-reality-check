@@ -21,6 +21,10 @@ LLM Response Engine                               Image Authenticator
   Ollama / OpenAI / Demo                            ├── Metadata Checker
   models/llm_registry.py                            │   EXIF · XMP · software · timestamps
        │                                            │
+       │                                            ├── AI Watermark Detector
+       │                                            │   metadata tags · PNG text chunks
+       │                                            │   OCR hook · floor ≥ 85 % if found
+       │                                            │
        ▼                                            ├── Pixel Forensics
 Evaluation Engine                                   │   ELA · JPEG Ghost · noise residual
   ├── Factual Checker (DuckDB + Wikipedia)          │   noise block consistency (16-block)
@@ -93,6 +97,8 @@ Text Scoring Engine                                 │   6 pixel heuristics (te
 | Illustration AI gate (lowers gate threshold; includes FFT for PNG/lossless) | Image | ✅ |
 | Photo conditional AI gate (no_exif + block_cv ≥ 0.45 or ELA ≥ 20) | Image | ✅ |
 | Image-type fix: flat_ratio cap 0.25 (snow / sky / water scene tolerance) | Image | ✅ |
+| AI watermark detection (metadata tags, PNG text chunks, OCR hook, invisible-watermark stubs) | Image | ✅ |
+| Watermark scoring floor: ai_likelihood ≥ 85 % when AI watermark confirmed | Image | ✅ |
 | Power-of-two dimension penalty (AI-typical WxH) | Image | ✅ |
 | CLIP image-text consistency check | Image | ✅ |
 | Reverse image search (Google / Bing / SerpApi) | Image | ✅ |
@@ -132,6 +138,17 @@ streamlit run app.py
 ```
 
 Open `http://localhost:8501` in your browser.
+
+---
+
+## Documentation
+
+Two interactive HTML reference guides are included in the repository root:
+
+| File | Purpose |
+|------|---------|
+| [`architecture.html`](architecture.html) | Full system architecture diagram — all modules, data flows, scoring formulas, and config keys for both the text and image pipelines. Open directly in any browser. |
+| [`pipeline_guide.html`](pipeline_guide.html) | Step-by-step pipeline guide — detailed breakdown of every evaluation technique (ELA, JPEG Ghost, AI watermark detection, ML gates, …) with code-level formulas, signal explanations, and output field reference. |
 
 ---
 
@@ -293,6 +310,12 @@ ai_prob*  = ai_prob + gate × pixel_sig × 0.60 × (1 − ai_prob)
 ML models trained on photorealistic deepfakes fail on illustration-style AI. FFT peaks are included for illustrations (typically PNG) because JPEG block-DCT compression artifacts are absent.
 
 **FFT exclusion for photos:** FFT spectral peaks are excluded from `pixel_sig` in the photo gate — JPEG 8×8 block-DCT routinely raises FFT ratios in authentic camera photos, making it unreliable as an AI discriminator at the `ai_likelihood` level.
+
+**Watermark floor:** When the AI watermark detector finds a confirmed watermark (metadata generator tag, PNG text chunk, or OCR-detected overlay), `ai_prob*` is clamped to a minimum of **0.85** regardless of the ML classifier or pixel forensics result. Watermark absence is intentionally neutral and never reduces `ai_likelihood`.
+```
+if watermark.has_watermark:
+    ai_prob* = max(ai_prob*, 0.85)
+```
 
 #### Pixel forensics sub-scores
 

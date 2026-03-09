@@ -36,6 +36,7 @@ from . import (
     ai_artifact_classifier,
     image_scoring,
     image_text_consistency,
+    image_watermark_detector,
     metadata_checker,
     pixel_forensics,
     reverse_image_search,
@@ -43,6 +44,7 @@ from . import (
 from .datatypes import ImageEvaluationReport
 from profiler import get_timings, reset
 from utils.logging_utils import timer
+from config_loader import get_feature
 
 
 def evaluate_image(
@@ -88,6 +90,17 @@ def evaluate_image(
     with timer("metadata"):
         meta_result = metadata_checker.run(image_bytes)
 
+    # ── Step 1b: Watermark detection (optional, feature-flagged) ────────────
+    # Runs after metadata so the already-extracted MetadataResult can be reused
+    # (avoids a second EXIF parse).  Placed before pixel forensics so the scoring
+    # engine can short-circuit further analysis when a definitive watermark is found.
+    watermark_result = None
+    if get_feature("image.enable_watermark_detection"):
+        with timer("watermark"):
+            watermark_result = image_watermark_detector.detect_watermarks(
+                image_bytes, metadata_result=meta_result
+            )
+
     # ── Step 2: Pixel forensics ─────────────────────────────────────────────
     with timer("pixel_forensics"):
         pixel_result = pixel_forensics.run(image_bytes)
@@ -112,6 +125,7 @@ def evaluate_image(
             ai_artifact    = ai_result,
             consistency    = consistency_result,
             reverse_search = reverse_result,
+            watermark      = watermark_result,
         )
 
     report.metadata["timings"] = get_timings()

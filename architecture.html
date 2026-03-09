@@ -18,18 +18,21 @@
   h1 {
     text-align: center;
     font-size: 1.5rem;
-    font-weight: 700;
-    color: #f0f6fc;
-    letter-spacing: .06em;
-    text-transform: uppercase;
+    font-weight: 900;
+    letter-spacing: -0.02em;
     margin-bottom: 4px;
+    background: linear-gradient(90deg, #3b82f6, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
   .subtitle {
     text-align: center;
     font-size: .78rem;
-    color: #6e7681;
+    color: #94a3b8;
     margin-bottom: 28px;
     letter-spacing: .04em;
+    font-style: italic;
   }
 
   /* ── boxes ── */
@@ -292,7 +295,7 @@
 </head>
 <body>
 
-<h1>🔍 VeritasIQ</h1>
+<h1>VeritasIQ</h1>
 <div class="subtitle">Where Intelligence Meets Integrity — System Architecture v2</div>
 
 <div style="max-width:90%;margin:0 auto;">
@@ -661,7 +664,7 @@
             </div>
             <div class="box-sub">
               Public entry-point — accepts raw <b>image_bytes: bytes</b> + optional <b>caption: str</b><br>
-              Orchestrates all 5 pipeline steps sequentially · Returns ImageEvaluationReport<br>
+              Orchestrates metadata → optional watermark detection → 5 analysis steps · Returns ImageEvaluationReport<br>
               profiler.reset() on entry · report.metadata["timings"] on exit<br>
               <span class="util-ref">utils.logging_utils.timer(label) — with timer("step"): wrapping each step</span><br>
               <span class="note">Fully isolated from text pipeline — no shared state or imports</span>
@@ -703,7 +706,24 @@
             </div>
           </div>
 
-          <!-- Step 2 -->
+          <!-- Step 1b -->
+          <div class="box yellow" style="flex:1;min-width:140px;">
+            <div class="box-title">🔏 Step 1b — Watermark Detection
+              <span class="box-tag">image_watermark_detector.py</span>
+            </div>
+            <div class="box-sub">
+              <b>4 detection strategies (priority order):</b><br>
+              ① Metadata tag: detected_ai_generator + raw EXIF scan → conf 0.90<br>
+              ② PNG text chunks: "parameters", "prompt", "workflow" → conf 0.80<br>
+              ③ OCR hook (pluggable: pytesseract / easyocr) → conf 0.85<br>
+              ④ SD invisible watermark stub (extensible)<br>
+              &nbsp;&nbsp;&nbsp;SynthID stub (extensible)<br>
+              20+ AI software keywords · 13 regex patterns<br>
+              <span class="note">Absence → neutral · never reduces ai_likelihood</span><br>
+              <span class="config-ref">features.yaml: enable_watermark_detection</span><br>
+              → WatermarkResult (has_watermark · type · confidence)
+            </div>
+          </div>
           <div class="box teal" style="flex:1;min-width:150px;">
             <div class="box-title">🔎 Step 2 — Pixel Forensics
               <span class="box-tag">pixel_forensics.py</span>
@@ -805,7 +825,7 @@
 
     <!-- arrow -->
     <div class="flow-label" style="padding:6px 0 2px;">
-      MetadataResult · PixelForensicsResult · AIArtifactResult · ConsistencyResult · ReverseSearchResult
+      MetadataResult · WatermarkResult · PixelForensicsResult · AIArtifactResult · ConsistencyResult · ReverseSearchResult
     </div>
     <div class="arr-row" style="padding:2px 0 4px;"><div class="arr-head-up"></div></div>
 
@@ -841,6 +861,8 @@
               &nbsp;&nbsp;<i>Illustration:</i> gate=clip(ai_prob/0.15,0,1) · cap=0.60<br>
               &nbsp;&nbsp;&nbsp;&nbsp;pixel_sig=(fft_sig+consist_sig)/2 · FFT included<br>
               &nbsp;&nbsp;ai_prob* = ai_prob + gate×pixel_sig×cap×(1−ai_prob)<br>
+              <b>Watermark floor:</b> if has_watermark → ai_prob* = max(ai_prob*, 0.85)<br>
+              &nbsp;&nbsp;<span class="note">Watermark absent → neutral · ai_prob* never reduced</span><br>
               editing_likelihood = 0.6×ela_badness + 0.4×metadata_edit_penalty<br>
               Confidence band propagation: Σ(w_i × band_i) × 100<br>
               Top 3 signals ranked by strength · ai threshold ≥ 0.25<br>
@@ -869,7 +891,8 @@
               &nbsp;&nbsp;consistency_issues<br>
               &nbsp;&nbsp;reverse_search_hits<br>
               &nbsp;&nbsp;component_scores · component_weights<br>
-              &nbsp;&nbsp;*_band fields per component }<br>
+              &nbsp;&nbsp;*_band fields per component<br>
+              &nbsp;&nbsp;watermark: {has_watermark · type · confidence} }<br>
               metadata["timings"] — per-step ms
             </div>
           </div>

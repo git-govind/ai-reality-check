@@ -24,7 +24,7 @@ pg = st.navigation([
 # ── Sidebar logo (st.logo places content above nav links) ────────────────────
 # Full logo: name + tagline — displayed when sidebar is expanded
 _LOGO_SVG = (
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 62">'
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 70">'
     '<defs>'
     '<linearGradient id="viq-grad" x1="0%" y1="0%" x2="100%" y2="0%">'
     '<stop offset="0%" stop-color="#3b82f6"/>'
@@ -35,13 +35,13 @@ _LOGO_SVG = (
     '<stop offset="100%" stop-color="#a855f7"/>'
     '</linearGradient>'
     '</defs>'
-    '<text x="0" y="38"'
+    '<text x="0" y="44"'
     ' font-family="ui-sans-serif,system-ui,-apple-system,Arial,sans-serif"'
-    ' font-size="36" font-weight="900" letter-spacing="-1"'
+    ' font-size="42" font-weight="900" letter-spacing="-1"'
     ' fill="url(#viq-grad)">VeritasIQ</text>'
-    '<text x="0" y="56"'
+    '<text x="0" y="63"'
     ' font-family="ui-sans-serif,system-ui,-apple-system,Arial,sans-serif"'
-    ' font-size="12" fill="#94a3b8" font-style="italic">'
+    ' font-size="14" fill="#94a3b8" font-style="italic">'
     'Where Intelligence Meets Integrity</text>'
     '</svg>'
 )

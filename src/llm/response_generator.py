@@ -172,7 +172,13 @@ def generate_response(
         return _openai_response(prompt, model_display_name, system_prompt, temperature, max_tokens)
 
     if backend == "ollama":
-        return _ollama_response(prompt, model_display_name, system_prompt, temperature, max_tokens, stream)
+        try:
+            return _ollama_response(prompt, model_display_name, system_prompt, temperature, max_tokens, stream)
+        except Exception as exc:
+            # Re-raise with the cleaned-up message so the UI can display it clearly.
+            # The caller (page code) should catch this and show st.error() rather than
+            # letting Streamlit render a raw traceback.
+            raise RuntimeError(str(exc)) from exc
 
     # demo mode
     return _get_demo_response(prompt)
@@ -201,14 +207,30 @@ def _ollama_response(
     if stream:
         return _ollama_stream(payload)
     resp = requests.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload, timeout=120)
-    resp.raise_for_status()
+    if not resp.ok:
+        _raise_ollama_error(resp)
     return resp.json()["message"]["content"]
+
+
+def _raise_ollama_error(resp: requests.Response) -> None:
+    """Extract Ollama's error detail and raise a descriptive RuntimeError."""
+    try:
+        detail = resp.json().get("error", resp.text) or resp.text
+    except Exception:
+        detail = resp.text or f"HTTP {resp.status_code}"
+    # Suggest the fix for the most common cause (model not pulled)
+    hint = ""
+    if "not found" in detail.lower() or "pull" in detail.lower():
+        model = detail.split("'")[1] if "'" in detail else "the model"
+        hint = f" — run: ollama pull {model}"
+    raise RuntimeError(f"Ollama error: {detail}{hint}")
 
 
 def _ollama_stream(payload: dict) -> Iterator[str]:
     import json
     with requests.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload, stream=True, timeout=120) as resp:
-        resp.raise_for_status()
+        if not resp.ok:
+            _raise_ollama_error(resp)
         for line in resp.iter_lines():
             if line:
                 data = json.loads(line)

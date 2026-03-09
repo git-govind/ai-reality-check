@@ -19,6 +19,7 @@ from .datatypes import (
     PixelForensicsResult,
     ReverseSearchResult,
 )
+from .image_watermark_detector import WatermarkResult
 
 __all__ = [
     "evaluate_image",
@@ -28,4 +29,5 @@ __all__ = [
     "AIArtifactResult",
     "ConsistencyResult",
     "ReverseSearchResult",
+    "WatermarkResult",
 ]

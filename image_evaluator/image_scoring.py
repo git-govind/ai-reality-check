@@ -65,6 +65,7 @@ from .datatypes import (
     PixelForensicsResult,
     ReverseSearchResult,
 )
+from .image_watermark_detector import WatermarkResult
 
 from config_loader import get_feature, get_threshold, get_weight
 from explanation_generator import generate_explanation
@@ -471,6 +472,7 @@ def aggregate(
     consistency:    Optional[ConsistencyResult]    = None,
     reverse_search: Optional[ReverseSearchResult] = None,
     image_type:     str                            = "photo",
+    watermark:      Optional[WatermarkResult]      = None,
 ) -> ImageEvaluationReport:
     """
     Aggregate pipeline step results into an :class:`ImageEvaluationReport`.
@@ -486,6 +488,7 @@ def aggregate(
     consistency    : ConsistencyResult or None
     reverse_search : ReverseSearchResult or None
     image_type     : str  – ``"photo"`` | ``"illustration"`` | ``"screenshot"``
+    watermark      : WatermarkResult or None  – from image_watermark_detector
 
     Returns
     -------
@@ -550,6 +553,17 @@ def aggregate(
         + _ml_gate * _pixel_sig * _blend_cap * (1.0 - ai_artifact.ai_prob),
         0.0, 1.0,
     ))
+
+    # ── Watermark floor ───────────────────────────────────────────────────────
+    # A confirmed AI watermark (metadata tag, visible text, or invisible pattern)
+    # is a strong positive signal regardless of what pixel forensics or the ML
+    # classifier returned.  We clamp _effective_ai_prob to ≥ 0.85 so that both
+    # ai_likelihood and the authenticity_score weighted-sum reflect this.
+    # Absence of a watermark is intentionally neutral — _effective_ai_prob is NOT
+    # reduced when has_watermark is False.
+    _watermark_triggered = watermark is not None and watermark.has_watermark
+    if _watermark_triggered:
+        _effective_ai_prob = float(max(_effective_ai_prob, 0.85))
 
     # ── Fixed components (always active) ─────────────────────────────────────
     weights: dict[str, float] = {
@@ -620,6 +634,15 @@ def aggregate(
     # ── Top signals ───────────────────────────────────────────────────────────
     top_sigs = _top_signals(metadata, pixel, ai_artifact, consistency, reverse_search)
 
+    # Prepend watermark signal — it is the strongest possible AI indicator and
+    # should always appear first when present.  Keep the list to 3 entries.
+    if _watermark_triggered:
+        wm_label = (
+            f"AI watermark detected: {watermark.watermark_type}"   # type: ignore[union-attr]
+            f" (confidence {watermark.confidence:.0%})"            # type: ignore[union-attr]
+        )
+        top_sigs = [wm_label] + [s for s in top_sigs if s != wm_label][:2]
+
     # ── Grade ─────────────────────────────────────────────────────────────────
     s = authenticity_score
     if s >= _IMG_GRADE_A:
@@ -665,6 +688,16 @@ def aggregate(
         "component_weights": {
             k: round(norm_weights[k], 3) for k in norm_weights
         },
+        "watermark": (
+            {
+                "has_watermark":  watermark.has_watermark,
+                "watermark_type": watermark.watermark_type,
+                "confidence":     watermark.confidence,
+                "details":        watermark.details,
+            }
+            if watermark is not None
+            else None
+        ),
     }
 
     report = ImageEvaluationReport(
@@ -737,6 +770,9 @@ def aggregate(
                 "ood_warning_triggered":   bool(ai_artifact.ood_warning),
                 "ai_method":               ai_artifact.method,
                 "ai_confidence_band":      round(ai_artifact.confidence_band, 3),
+                "watermark_triggered":     _watermark_triggered,
+                "watermark_type":          watermark.watermark_type if _watermark_triggered else None,
+                "watermark_confidence":    watermark.confidence if _watermark_triggered else None,
             },
         }
 

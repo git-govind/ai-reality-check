@@ -43,11 +43,11 @@
     display: flex; align-items: center; gap: 0;
   }
   .topnav-brand {
-    font-weight: 700; font-size: 15px;
+    font-weight: 900; font-size: 15px;
     letter-spacing: -.3px;
     padding: 14px 0;
     margin-right: 28px;
-    background: linear-gradient(135deg, var(--blue), var(--purple));
+    background: linear-gradient(90deg, #3b82f6, #a855f7);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     background-clip: text;
     white-space: nowrap;
@@ -80,7 +80,7 @@
   .hero h1 {
     font-size: 28px; font-weight: 800; letter-spacing: -.5px;
     margin-bottom: 10px;
-    background: linear-gradient(135deg, #e6edf3 0%, #8b949e 100%);
+    background: linear-gradient(90deg, #3b82f6, #a855f7);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     background-clip: text;
   }
@@ -348,7 +348,7 @@
 
 <!-- ── Top navigation ──────────────────────────────────────────── -->
 <nav class="topnav">
-  <div class="topnav-brand">VeritasIQ <span style="font-size:0.65rem;font-weight:400;opacity:0.6;letter-spacing:0.02em">Where Intelligence Meets Integrity</span></div>
+  <div class="topnav-brand">VeritasIQ <span style="font-size:0.65rem;font-weight:400;letter-spacing:0.02em;-webkit-text-fill-color:#94a3b8;color:#94a3b8;font-style:italic">Where Intelligence Meets Integrity</span></div>
   <div class="tab-nav">
     <button class="tab-btn active" onclick="showPanel('text',this)">📝 Text Pipeline</button>
     <button class="tab-btn img-tab" onclick="showPanel('image',this)">🖼 Image Pipeline</button>
@@ -361,7 +361,7 @@
   <p>A detailed breakdown of every evaluation step — origin, purpose, and mechanics — for both the Text and Image authenticity pipelines.</p>
   <div class="hero-badges">
     <div class="hero-badge hb-text"><span>6</span> Text pipeline steps</div>
-    <div class="hero-badge hb-img"><span>11</span> Image pipeline components</div>
+    <div class="hero-badge hb-img"><span>12</span> Image pipeline components</div>
     <div class="hero-badge"><span style="color:var(--green)">5</span> Shared utils &amp; infrastructure</div>
   </div>
 </div>
@@ -818,6 +818,10 @@ confidence_score =
       <div class="flow-num">1</div>Metadata
     </div>
     <div class="flow-arrow">›</div>
+    <div class="flow-step img-step" onclick="scrollTo('i1b')">
+      <div class="flow-num">1b</div>Watermark
+    </div>
+    <div class="flow-arrow">›</div>
     <div class="flow-step img-step" onclick="scrollTo('i2')">
       <div class="flow-num">2</div>Pixel Forensics
     </div>
@@ -916,6 +920,102 @@ confidence_score =
           <span class="pill pill-red">detected_ai_generator</span>
           <span class="pill pill-teal">confidence_band</span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 1b: Watermark Detection ────────────────────────── -->
+  <div id="i1b" class="card img-card">
+    <div class="card-header">
+      <div class="step-badge">1b</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          AI Watermark Detection
+          <span class="file-tag">image_evaluator/image_watermark_detector.py</span>
+          <span class="pill pill-purple">4 strategies</span>
+          <span class="pill">feature-flagged</span>
+        </div>
+        <div class="card-subtitle">
+          Scans for AI-origin watermarks using four complementary strategies — metadata
+          generator tags, PNG text chunks, an optional OCR hook, and extensible invisible-watermark
+          stubs. A confirmed watermark is treated as a strong positive AI signal: it clamps
+          <code>ai_likelihood</code> to at least 85 %. Watermark absence is intentionally neutral
+          and never reduces the likelihood score.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="techniques">
+
+        <div class="technique">
+          <div class="technique-title">① Metadata Tag Detection</div>
+          <div class="technique-body">
+            <div class="steps">
+              <div class="step-item"><span class="step-num">1</span>Check <code>MetadataResult.detected_ai_generator</code> (already set by the metadata checker)</div>
+              <div class="step-item"><span class="step-num">2</span>Scan priority fields: <code>Software</code>, <code>Artist</code>, <code>Copyright</code>, <code>ImageDescription</code></div>
+              <div class="step-item"><span class="step-num">3</span>Scan all remaining raw metadata string fields for 20+ AI software keywords</div>
+              <div class="step-item"><span class="step-num">4</span>Keywords include: Midjourney · Stable Diffusion · DALL·E · Adobe Firefly · Imagen · DreamStudio · …</div>
+            </div>
+            <div class="signal-row"><span class="pill pill-orange">watermark_type: metadata_tag</span><span class="pill pill-green">confidence: 0.90</span></div>
+          </div>
+        </div>
+
+        <div class="technique">
+          <div class="technique-title">② PNG / Image Text Chunks</div>
+          <div class="technique-body">
+            <div class="steps">
+              <div class="step-item"><span class="step-num">1</span>Read <code>img.info</code> dict — Stable Diffusion stores full generation parameters in the <code>"parameters"</code> key</div>
+              <div class="step-item"><span class="step-num">2</span>Check keys: <code>parameters</code>, <code>prompt</code>, <code>workflow</code>, <code>comment</code>, <code>UserComment</code>, <code>description</code></div>
+              <div class="step-item"><span class="step-num">3</span>Match each chunk value against 20+ AI software keywords and 13 regex patterns (e.g. <code>generated\s+by</code>, <code>ai[\s\-]generated</code>)</div>
+              <div class="step-item"><span class="step-num">4</span>No image decode overhead — works directly from <code>Image.info</code></div>
+            </div>
+            <div class="signal-row"><span class="pill pill-orange">watermark_type: visible_text</span><span class="pill pill-green">confidence: 0.80</span></div>
+          </div>
+        </div>
+
+        <div class="technique">
+          <div class="technique-title">③ OCR Hook (pluggable)</div>
+          <div class="technique-body">
+            <div class="steps">
+              <div class="step-item"><span class="step-num">1</span>If an OCR backend is registered via <code>register_ocr_backend(fn)</code>, image is downscaled to ≤ 1024 px</div>
+              <div class="step-item"><span class="step-num">2</span>Backend receives the PIL image and returns extracted text</div>
+              <div class="step-item"><span class="step-num">3</span>Text is matched against watermark patterns and AI software keywords</div>
+              <div class="step-item"><span class="step-num">4</span>Compatible with pytesseract, easyocr, or any <code>Image → str</code> callable — no default dependency</div>
+            </div>
+            <div class="signal-row"><span class="pill pill-orange">watermark_type: visible_text</span><span class="pill pill-green">confidence: 0.85</span></div>
+          </div>
+        </div>
+
+        <div class="technique">
+          <div class="technique-title">④ Invisible Watermark Stubs (extensible)</div>
+          <div class="technique-body">
+            <div class="steps">
+              <div class="step-item"><span class="step-num">SD</span><code>detect_sd_invisible_watermark()</code> — stub for <code>invisible-watermark</code> library (DwtDctSvd decoder). Returns <code>None</code> until wired.</div>
+              <div class="step-item"><span class="step-num">G</span><code>detect_synthid_watermark()</code> — stub for Google SynthID API / open-source detector. Returns <code>None</code> until wired.</div>
+            </div>
+            <div class="signal-row"><span class="pill">watermark_type: sd_invisible / synthid</span><span class="pill">confidence: 0.85 when active</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="gate-rationale">
+        <div class="gate-title">Scoring Impact</div>
+        <pre class="code-block"><code><span class="cm"># Watermark present → floor ai_likelihood at 85 %</span>
+<span class="kw">if</span> watermark.has_watermark:
+    ai_prob<span class="op">*</span> = max(ai_prob<span class="op">*</span>, <span class="nm">0.85</span>)
+    top_signals.insert(<span class="nm">0</span>, <span class="str">f"AI watermark detected: {watermark_type} (confidence {confidence:.0%})"</span>)
+    evidence[<span class="str">"watermark"</span>] = watermark.__dict__
+
+<span class="cm"># Watermark absent → no change; absence is neutral</span>
+<span class="cm"># feature flag: features.yaml → image.enable_watermark_detection: true</span></code></pre>
+      </div>
+
+      <div class="output-pills">
+        <span class="pill pill-green">has_watermark: bool</span>
+        <span class="pill pill-orange">watermark_type: str | None</span>
+        <span class="pill pill-blue">confidence: float</span>
+        <span class="pill pill-teal">details: dict</span>
       </div>
     </div>
   </div>
@@ -1469,6 +1569,10 @@ base_w = WEIGHTS_BY_TYPE[image_type]
 
 <span class="cm"># 3. Compute type-aware ML-gated effective ai_prob (see AI Classifier card)</span>
 ai_prob<span class="op">*</span>  = ai_prob + gate × pixel_sig × cap × (<span class="nm">1</span> − ai_prob)
+
+<span class="cm"># 3b. Watermark floor — confirmed AI watermark overrides pixel/ML verdict</span>
+<span class="kw">if</span> watermark <span class="kw">and</span> watermark.has_watermark:
+    ai_prob<span class="op">*</span> = max(ai_prob<span class="op">*</span>, <span class="nm">0.85</span>)
 
 <span class="cm"># 4. Build scores dict, redistribute weights for skipped steps</span>
 scores    = { metadata, pixel, ai: 1−ai_prob*, [consistency], [reverse] }

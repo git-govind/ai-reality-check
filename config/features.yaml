@@ -33,6 +33,13 @@ image:
   # skip the AI classifier entirely and set ai_prob = 1.0 directly.
   early_exit_on_ai_generator: true
 
+  # Run the AI watermark detection module (image_watermark_detector).
+  # Checks metadata tags, PNG text chunks (Stable Diffusion "parameters" key),
+  # and any registered OCR backend for known AI generator watermarks.
+  # When a watermark is found, ai_likelihood is clamped to at least 85 %.
+  # Disable only for benchmarking or if the module causes unexpected overhead.
+  enable_watermark_detection: true
+
 text:
   # Run a second LLM pass to critique logical consistency.
   # Falls back to heuristic-only scoring when false or when no model is provided.
