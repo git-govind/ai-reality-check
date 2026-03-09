@@ -1,6 +1,8 @@
 # VeritasIQ
 > Where Intelligence Meets Integrity
 
+**Live app:** [veritasiq.streamlit.app](https://veritasiq.streamlit.app/)
+
 An open-source tool that evaluates the **correctness, safety, and reliability** of AI model responses **and** the **authenticity of images** (AI-generated vs. real), using two fully independent evaluation pipelines.
 
 ---
@@ -112,11 +114,17 @@ Text Scoring Engine                                 │   6 pixel heuristics (te
 
 ## Quick Start
 
+> **Try it now:** [veritasiq.streamlit.app](https://veritasiq.streamlit.app/) — no local setup required.
+> The hosted app runs the Image Evaluator in full. The Prompt Evaluator requires a connected LLM (see below).
+
 ### 1. Prerequisites
 
 - Python 3.10+
-- [Ollama](https://ollama.ai) installed and running (optional — app runs in Demo mode without it)
-- At least one model pulled, e.g. `ollama pull mistral`
+- **Prompt Evaluator (text):** requires an LLM backend to generate and evaluate responses.
+  - [Ollama](https://ollama.ai) installed locally with at least one model pulled, e.g. `ollama pull mistral` — **or**
+  - An `OPENAI_API_KEY` set in `.env` for the OpenAI backend.
+  - Without either, the app falls back to **Demo mode** (pre-canned mock responses — no real evaluation).
+- **Image Evaluator:** works fully without any LLM or API key.
 
 ### 2. Install dependencies
 
