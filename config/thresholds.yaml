@@ -90,6 +90,26 @@ image:
     max_contribution: 0.50    # pixel signal maximum incremental contribution to ai_prob
     gate_low:  0.10           # ai_prob below this → gate = 0 (no pixel boost)
     gate_high: 0.30           # ai_prob above this → gate = 1 (full pixel boost)
+    # Illustration overrides — ML classifier is unreliable for stylised/rendered art
+    # (trained on photorealistic deepfakes).  Gate is lowered so pixel forensics can
+    # contribute even when ML returns near-zero ai_prob.  FFT peaks are also included
+    # for illustrations because they are typically PNG/lossless (no JPEG 8×8 block-DCT).
+    illus_max_contribution: 0.60
+    illus_gate_low:  0.00     # pixel boost active even when ML ai_prob ≈ 0
+    illus_gate_high: 0.15     # full pixel boost once ML reaches 15% confidence
+    illus_fft_threshold: 0.30 # FFT peak ratio above this is suspicious for illustrations
+    # Photo conditional gate — for photorealistic AI images the ML classifier is
+    # unreliable; no_exif + very high block_cv (≥ block_cv_min) together constitute
+    # corroborating evidence that justifies a lower gate floor.
+    # FFT remains excluded (still a photo → JPEG DCT artefacts confound).
+    photo_highcv_gate_low:   0.00  # allow pixel boost even at near-zero ML ai_prob
+    photo_highcv_gate_high:  0.15  # full boost once ML reaches 15%
+    photo_highcv_blend_cap:  0.60  # max incremental contribution
+    photo_highcv_block_cv_min: 0.45 # block_cv threshold to activate conditional gate
+    # ELA secondary trigger: AI images saved as JPEG show ELA artefacts because
+    # compression is applied to synthetic (non-camera) pixels.  Real unedited camera
+    # photos almost never exceed ela_bad 20 without external editing.
+    photo_highcv_ela_min: 20        # ela_bad (0–100) threshold as alternative trigger
 
   # Minimum raw ML ai_prob for the "AI detector" entry to appear in top_signals.
   # Below this, a low AI probability is an authenticity indicator, not a concern.

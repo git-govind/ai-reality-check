@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VeritasIQ — Pipeline Guide</title>
+<style>
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --surface2:  #1c242e;
+    --border:    #21262d;
+    --border2:   #30363d;
+    --text:      #e6edf3;
+    --muted:     #8b949e;
+    --blue:      #58a6ff;
+    --purple:    #a371f7;
+    --green:     #3fb950;
+    --teal:      #39c5cf;
+    --orange:    #d29922;
+    --pink:      #f778ba;
+    --red:       #f85149;
+    --indigo:    #6e76ba;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── Top nav ────────────────────────────────────────────────── */
+  .topnav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex; align-items: center; gap: 0;
+  }
+  .topnav-brand {
+    font-weight: 700; font-size: 15px;
+    letter-spacing: -.3px;
+    padding: 14px 0;
+    margin-right: 28px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    white-space: nowrap;
+  }
+  .tab-nav { display: flex; gap: 4px; }
+  .tab-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 13px; font-weight: 500;
+    padding: 10px 16px; border-radius: 6px;
+    transition: all .15s;
+    position: relative;
+  }
+  .tab-btn::after {
+    content: ''; position: absolute; bottom: 0; left: 16px; right: 16px;
+    height: 2px; border-radius: 2px;
+    background: transparent; transition: background .15s;
+  }
+  .tab-btn:hover { color: var(--text); background: rgba(255,255,255,.04); }
+  .tab-btn.active { color: var(--text); }
+  .tab-btn.active::after { background: var(--blue); }
+  .tab-btn.active.img-tab::after { background: var(--purple); }
+
+  /* ── Hero ───────────────────────────────────────────────────── */
+  .hero {
+    background: linear-gradient(180deg, #111928 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 32px 40px;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 28px; font-weight: 800; letter-spacing: -.5px;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #e6edf3 0%, #8b949e 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p { color: var(--muted); max-width: 580px; margin: 0 auto 20px; font-size: 14px; }
+  .hero-badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .hero-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 14px;
+    font-size: 12px; color: var(--muted);
+  }
+  .hero-badge span { font-weight: 600; }
+  .hb-text span { color: var(--blue); }
+  .hb-img span  { color: var(--purple); }
+
+  /* ── Layout ─────────────────────────────────────────────────── */
+  .content { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── Pipeline flow bar ──────────────────────────────────────── */
+  .flow-bar {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px; margin-bottom: 36px;
+    overflow: hidden;
+  }
+  .flow-step {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: background .15s;
+    white-space: nowrap;
+  }
+  .flow-step:hover { background: rgba(255,255,255,.08); }
+  .flow-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+  }
+  .flow-arrow {
+    color: var(--border2); font-size: 12px;
+    padding: 0 2px;
+  }
+  .text-step .flow-num { background: rgba(88,166,255,.15); color: var(--blue); }
+  .img-step  .flow-num { background: rgba(163,113,247,.15); color: var(--purple); }
+
+  /* ── Section header ─────────────────────────────────────────── */
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin: 40px 0 24px;
+  }
+  .section-header:first-of-type { margin-top: 0; }
+  .section-line {
+    flex: 1; height: 1px; background: var(--border);
+  }
+  .section-title {
+    font-size: 11px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* ── Component card ─────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; gap: 14px;
+    position: relative;
+  }
+  .card-header::before {
+    content: ''; position: absolute;
+    left: 0; top: 0; bottom: 0; width: 3px;
+    border-radius: 12px 0 0 0;
+  }
+  .text-card .card-header::before { background: var(--blue); }
+  .img-card  .card-header::before { background: var(--purple); }
+  .sub-card  .card-header::before { background: var(--teal); }
+
+  .step-badge {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+  }
+  .text-card .step-badge { background: rgba(88,166,255,.12); color: var(--blue); }
+  .img-card  .step-badge { background: rgba(163,113,247,.12); color: var(--purple); }
+  .sub-card  .step-badge { background: rgba(57,197,207,.12); color: var(--teal); }
+
+  .card-header-text { flex: 1; min-width: 0; }
+  .card-title {
+    font-size: 15px; font-weight: 700; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .card-subtitle { color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+  .file-tag {
+    background: rgba(255,255,255,.05); border: 1px solid var(--border2);
+    border-radius: 4px; padding: 1px 7px;
+    font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace;
+    font-weight: 400;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    border-radius: 12px; padding: 2px 9px;
+    font-size: 11px; font-weight: 600;
+  }
+  .pill-blue   { background: rgba(88,166,255,.12);  color: var(--blue); }
+  .pill-purple { background: rgba(163,113,247,.12); color: var(--purple); }
+  .pill-green  { background: rgba(63,185,80,.12);   color: var(--green); }
+  .pill-teal   { background: rgba(57,197,207,.12);  color: var(--teal); }
+  .pill-orange { background: rgba(210,153,34,.12);  color: var(--orange); }
+  .pill-pink   { background: rgba(247,120,186,.12); color: var(--pink); }
+  .pill-red    { background: rgba(248,81,73,.12);   color: var(--red); }
+
+  /* ── Card body ──────────────────────────────────────────────── */
+  .card-body { padding: 0; }
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+  @media (max-width: 640px) { .info-grid { grid-template-columns: 1fr; } }
+  .info-cell {
+    padding: 16px 20px;
+    border-right: 1px solid var(--border);
+  }
+  .info-cell:last-child { border-right: none; }
+  .info-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .info-label-icon { font-size: 12px; }
+  .label-origin  .info-label { color: var(--orange); }
+  .label-purpose .info-label { color: var(--green); }
+  .info-text { font-size: 13px; color: #c9d1d9; line-height: 1.65; }
+
+  .howto-section {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .howto-section .info-label { color: var(--blue); margin-bottom: 10px; }
+  .img-card .howto-section .info-label { color: var(--purple); }
+  .sub-card .howto-section .info-label { color: var(--teal); }
+
+  .steps-list {
+    list-style: none; display: flex; flex-direction: column; gap: 6px;
+  }
+  .steps-list li {
+    display: flex; gap: 10px; align-items: flex-start;
+    font-size: 13px; color: var(--muted); line-height: 1.55;
+  }
+  .steps-list li::before {
+    content: attr(data-n);
+    min-width: 20px; height: 20px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+  }
+  .text-card .steps-list li::before { background: rgba(88,166,255,.1); color: var(--blue); }
+  .img-card  .steps-list li::before { background: rgba(163,113,247,.1); color: var(--purple); }
+  .sub-card  .steps-list li::before { background: rgba(57,197,207,.1); color: var(--teal); }
+  .steps-list b { color: var(--text); }
+
+  .output-row {
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .output-label {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .output-fields { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* ── Academic reference callout ─────────────────────────────── */
+  .ref-box {
+    margin: 10px 0 4px;
+    background: rgba(210,153,34,.06); border: 1px solid rgba(210,153,34,.2);
+    border-left: 3px solid var(--orange);
+    border-radius: 6px; padding: 8px 12px;
+    font-size: 12px; color: #c9a227; line-height: 1.5;
+  }
+  .ref-box strong { color: var(--orange); }
+
+  /* ── Sub-technique container ────────────────────────────────── */
+  .sub-grid {
+    padding: 16px 20px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  @media (max-width: 700px) { .sub-grid { grid-template-columns: 1fr; } }
+  .sub-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 0;
+  }
+  .sub-card .card-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sub-card .step-badge { width: 26px; height: 26px; font-size: 12px; }
+  .sub-card .card-title { font-size: 13px; }
+  .sub-card .card-subtitle { font-size: 12px; }
+  .sub-card .info-grid { grid-template-columns: 1fr; }
+  .sub-card .info-cell { padding: 12px 14px; border-right: none; border-bottom: 1px solid var(--border); }
+  .sub-card .info-cell:last-child { border-bottom: none; }
+  .sub-card .howto-section { padding: 12px 14px; }
+  .sub-card .output-row { padding: 10px 14px; }
+  .sub-card .steps-list li { font-size: 12px; }
+  .sub-card .info-text { font-size: 12px; }
+
+  /* ── Highlight code ─────────────────────────────────────────── */
+  .formula {
+    background: #0d1117; border: 1px solid var(--border2);
+    border-radius: 6px; padding: 10px 14px; margin: 8px 0;
+    font-family: ui-monospace, monospace; font-size: 12px;
+    color: #79c0ff; line-height: 1.7; overflow-x: auto;
+  }
+  .formula .cm { color: var(--muted); }
+  .formula .kw { color: var(--purple); }
+  .formula .nm { color: #3fb950; }
+  .formula .op { color: var(--orange); }
+
+  /* ── Weight table ───────────────────────────────────────────── */
+  .weight-grid {
+    display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0;
+  }
+  .weight-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 12px;
+    font-size: 12px;
+  }
+  .weight-chip .wn { color: var(--text); font-weight: 600; }
+  .weight-chip .wv { color: var(--muted); }
+  .w-blue   { border-left: 3px solid var(--blue); }
+  .w-green  { border-left: 3px solid var(--green); }
+  .w-orange { border-left: 3px solid var(--orange); }
+  .w-pink   { border-left: 3px solid var(--pink); }
+  .w-teal   { border-left: 3px solid var(--teal); }
+  .w-purple { border-left: 3px solid var(--purple); }
+  .w-red    { border-left: 3px solid var(--red); }
+
+  /* ── Confidence band ────────────────────────────────────────── */
+  .band-box {
+    background: rgba(57,197,207,.06); border: 1px solid rgba(57,197,207,.2);
+    border-left: 3px solid var(--teal);
+    border-radius: 6px; padding: 8px 12px; margin-top: 8px;
+    font-size: 12px; color: #8dd3d7; line-height: 1.5;
+  }
+  .band-box strong { color: var(--teal); }
+
+  /* ── Spacer ─────────────────────────────────────────────────── */
+  .spacer { height: 36px; }
+</style>
+</head>
+<body>
+
+<!-- ── Top navigation ──────────────────────────────────────────── -->
+<nav class="topnav">
+  <div class="topnav-brand">VeritasIQ <span style="font-size:0.65rem;font-weight:400;opacity:0.6;letter-spacing:0.02em">Where Intelligence Meets Integrity</span></div>
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showPanel('text',this)">📝 Text Pipeline</button>
+    <button class="tab-btn img-tab" onclick="showPanel('image',this)">🖼 Image Pipeline</button>
+  </div>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────────── -->
+<div class="hero">
+  <h1>Pipeline Guide</h1>
+  <p>A detailed breakdown of every evaluation step — origin, purpose, and mechanics — for both the Text and Image authenticity pipelines.</p>
+  <div class="hero-badges">
+    <div class="hero-badge hb-text"><span>6</span> Text pipeline steps</div>
+    <div class="hero-badge hb-img"><span>11</span> Image pipeline components</div>
+    <div class="hero-badge"><span style="color:var(--green)">5</span> Shared utils &amp; infrastructure</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TEXT PIPELINE PANEL
+════════════════════════════════════════════════════════════════ -->
+<div class="content">
+<div id="panel-text" class="panel active">
+
+  <!-- Pipeline flow -->
+  <div class="flow-bar">
+    <div class="flow-step text-step" onclick="scrollTo('t1')">
+      <div class="flow-num">1</div>LLM Generator
+    </div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step text-step" onclick="scrollTo('t2')">
+      <div class="flow-num">2</div>Factual Checker
+    </div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step text-step" onclick="scrollTo('t3')">
+      <div class="flow-num">3</div>Consistency
+    </div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step text-step" onclick="scrollTo('t4')">
+      <div class="flow-num">4</div>Bias &amp; Safety
+    </div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step text-step" onclick="scrollTo('t5')">
+      <div class="flow-num">5</div>Clarity
+    </div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step text-step" onclick="scrollTo('t6')">
+      <div class="flow-num">6</div>Scoring Engine
+    </div>
+  </div>
+
+  <!-- ── STEP 1: LLM Response Generator ──────────────────────── -->
+  <div id="t1" class="card text-card">
+    <div class="card-header">
+      <div class="step-badge">1</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          LLM Response Generator
+          <span class="file-tag">src/llm/response_generator.py</span>
+          <span class="pill pill-blue">Entry point</span>
+        </div>
+        <div class="card-subtitle">
+          Sends the user's prompt to the configured language model and returns the AI response that will be evaluated by all downstream steps.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-cell label-origin">
+          <div class="info-label"><span class="info-label-icon">📚</span> Origin &amp; Provenance</div>
+          <div class="info-text">
+            Built on top of the <strong>Ollama</strong> local inference server and the <strong>OpenAI API</strong>.
+            Ollama allows running quantised open-weight models (Llama 3, Mistral, Phi-3, Gemma) entirely
+            on-device with no data leaving the machine. OpenAI provides GPT-4o access as an optional cloud
+            backend. Both backends are abstracted behind a common interface so evaluation logic is backend-agnostic.
+          </div>
+        </div>
+        <div class="info-cell label-purpose">
+          <div class="info-label"><span class="info-label-icon">🎯</span> Why It's Here</div>
+          <div class="info-text">
+            The pipeline evaluates <em>AI-generated text quality</em> — to do that it first needs an AI response.
+            This step decouples generation from evaluation: the same downstream checkers run identically
+            whether using Llama, Mistral, GPT-4o, or a pre-written test fixture.
+            A <strong>Demo mode</strong> provides a static response when no model is installed, enabling dry-runs of
+            the full UI without any API keys or local model setup.
+          </div>
+        </div>
+      </div>
+      <div class="howto-section">
+        <div class="info-label"><span class="info-label-icon">⚙</span> How It Works</div>
+        <ol class="steps-list">
+          <li data-n="1">Looks up the selected <b>display name</b> in the model registry (<code>models/llm_registry.py</code>) to obtain the Ollama tag or OpenAI model ID.</li>
+          <li data-n="2">Dispatches the prompt via the appropriate backend client (streaming or batch).</li>
+          <li data-n="3">Returns the raw text response string — no post-processing, no truncation — to preserve the full output for downstream analysis.</li>
+          <li data-n="4">In Demo mode, returns a pre-written paragraph describing transformer architectures to exercise the full UI without a live model.</li>
+        </ol>
+      </div>
+      <div class="output-row">
+        <span class="output-label">Output</span>
+        <div class="output-fields">
+          <span class="pill pill-blue">ai_response: str</span>
+          <span class="pill pill-blue">model_name: str</span>
+          <span class="pill pill-blue">is_demo_mode: bool</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: Factual Checker ──────────────────────────────── -->
+  <div id="t2" class="card text-card">
+    <div class="card-header">
+      <div class="step-badge">2</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          Factual Checker
+          <span class="file-tag">src/evaluation/factual_checker.py</span>
+          <span class="pill pill-orange">DuckDB + Wikipedia</span>
+        </div>
+        <div class="card-subtitle">
+          Extracts verifiable claims from the AI response and checks each against a local structured fact store
+          (DuckDB) and the Wikipedia API, classifying every claim as supported, contradicted, or unverified.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-cell label-origin">
+          <div class="info-label"><span class="info-label-icon">📚</span> Origin &amp; Provenance</div>
+          <div class="info-text">
+            Follows the <strong>Retrieval-Augmented Generation (RAG)</strong> pattern, popularised by Lewis et al.
+            (2020) "<em>Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</em>" (NeurIPS 2020).
+            The offline-first design (local DB → live API fallback) mirrors production RAG architectures that
+            prioritise latency and data privacy.
+            <div class="ref-box">
+              <strong>DuckDB</strong> — in-process analytical SQL engine by Raasveldt &amp; Mühleisen (2019).
+              Used here as a fast local knowledge store seeded with 57 verified facts. Zero-dependency, embedded,
+              no server process needed.
+            </div>
+          </div>
+        </div>
+        <div class="info-cell label-purpose">
+          <div class="info-label"><span class="info-label-icon">🎯</span> Why It's Here</div>
+          <div class="info-text">
+            LLMs hallucinate — they generate plausible-sounding but factually incorrect statements with high
+            confidence. This step provides an <em>external ground-truth check</em> independent of the model
+            being evaluated. A model cannot cheat its own factual evaluation.
+            <br><br>
+            The two-tier lookup (local DB first, Wikipedia second) keeps latency low for common topics while
+            still providing broad coverage through the live encyclopedia.
+          </div>
+        </div>
+      </div>
+      <div class="howto-section">
+        <div class="info-label"><span class="info-label-icon">⚙</span> How It Works</div>
+        <ol class="steps-list">
+          <li data-n="1"><b>Claim extraction:</b> breaks the response into candidate factual sentences using sentence splitting and heuristic filtering (length, presence of nouns).</li>
+          <li data-n="2"><b>DuckDB lookup:</b> computes <b>word-overlap ratio</b> between each claim and every fact in the local DB. A ratio ≥ 0.40 classifies the claim as <em>supported</em>; ≥ 0.20 triggers a contradiction check against negation patterns.</li>
+          <li data-n="3"><b>Wikipedia fallback:</b> for claims not resolved by DuckDB, queries the Wikipedia search API and applies the same word-overlap logic against the returned summary. Capped at 5 claims to limit API round-trips.</li>
+          <li data-n="4"><b>Weighted scoring:</b> DuckDB support = 1.0 credit, Wikipedia = 0.9, unverified = 0.5, contradicted = 0.0 − 15 pt penalty each. Final score = weighted sum ÷ claims checked × 100.</li>
+        </ol>
+      </div>
+      <div class="output-row">
+        <span class="output-label">Output</span>
+        <div class="output-fields">
+          <span class="pill pill-green">score [0–100]</span>
+          <span class="pill pill-blue">claims_checked</span>
+          <span class="pill pill-green">supported</span>
+          <span class="pill pill-red">contradicted</span>
+          <span class="pill pill-orange">unverified</span>
+          <span class="pill pill-blue">details[ ]</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: Consistency Checker ─────────────────────────── -->
+  <div id="t3" class="card text-card">
+    <div class="card-header">
+      <div class="step-badge">3</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          Consistency Checker
+          <span class="file-tag">src/evaluation/consistency_checker.py</span>
+          <span class="pill pill-purple">Heuristic + LLM blend</span>
+        </div>
+        <div class="card-subtitle">
+          Detects internal contradictions and prompt–response mismatches using a rule-based pass plus an
+          optional LLM self-critique, then produces a blended consistency score.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-cell label-origin">
+          <div class="info-label"><span class="info-label-icon">📚</span> Origin &amp; Provenance</div>
+          <div class="info-text">
+            The <strong>LLM-as-Judge</strong> pattern is drawn from Zheng et al. (2023) "<em>Judging LLM-as-a-Judge
+            with MT-Bench and Chatbot Arena</em>" — using a capable LLM to evaluate a weaker one's output quality.
+            <br><br>
+            The heuristic first-pass (6 contradiction patterns: "never … always", "on the one hand … however",
+            absolute quantifiers, etc.) provides a <em>fast, reproducible</em> baseline that doesn't require
+            any model to be running.
+          </div>
+        </div>
+        <div class="info-cell label-purpose">
+          <div class="info-label"><span class="info-label-icon">🎯</span> Why It's Here</div>
+          <div class="info-text">
+            LLMs sometimes generate responses that internally contradict themselves or stray from the original
+            prompt. A factually accurate response can still be logically inconsistent or off-topic.
+            <br><br>
+            The dual-pass design balances <em>reliability</em> (heuristic always runs, score is deterministic
+            and reproducible) with <em>depth</em> (LLM critique catches nuanced contradictions that simple
+            pattern matching misses). The blend weights are configurable: default 30% heuristic + 70% LLM.
+          </div>
+        </div>
+      </div>
+      <div class="howto-section">
+        <div class="info-label"><span class="info-label-icon">⚙</span> How It Works</div>
+        <ol class="steps-list">
+          <li data-n="1"><b>Heuristic pass:</b> regex scan for 6 contradiction signal patterns. Starts at 80, deducts 10 pts per match, floor at 50. Fast, deterministic, no API call needed.</li>
+          <li data-n="2"><b>LLM critique</b> (if model configured and feature flag enabled): prompts the model with a structured critique request, extracts a <code>X/10</code> score and issue bullets using regex.</li>
+          <li data-n="3"><b>Score blend:</b> <code>final = 0.30 × heuristic + 0.70 × llm_score</code> when LLM ran; heuristic-only otherwise.</li>
+          <li data-n="4">Issue bullets from both passes are deduplicated and tagged <code>[Consistency]</code> for display in the UI.</li>
+        </ol>
+      </div>
+      <div class="output-row">
+        <span class="output-label">Output</span>
+        <div class="output-fields">
+          <span class="pill pill-green">score [0–100]</span>
+          <span class="pill pill-blue">heuristic_score</span>
+          <span class="pill pill-purple">llm_score</span>
+          <span class="pill pill-orange">issues[ ]</span>
+          <span class="pill pill-blue">critique_text</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 4: Bias & Safety Checker ───────────────────────── -->
+  <div id="t4" class="card text-card">
+    <div class="card-header">
+      <div class="step-badge">4</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          Bias &amp; Safety Checker
+          <span class="file-tag">src/evaluation/bias_safety_checker.py</span>
+          <span class="pill pill-red">Rule engine + LLM</span>
+        </div>
+        <div class="card-subtitle">
+          Detects biased language and unsafe content using two independent rule sets plus an optional LLM scoring
+          pass, producing separate bias and safety scores that are averaged into a single component score.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-cell label-origin">
+          <div class="info-label"><span class="info-label-icon">📚</span> Origin &amp; Provenance</div>
+          <div class="info-text">
+            The bias rule vocabulary draws from <strong>AI fairness literature</strong>: Blodgett et al. (2020)
+            "<em>Language (Technology) is Power: A Critical Survey of 'Bias' in NLP</em>" (ACL 2020) and the
+            broader sociolinguistics research on loaded/pejorative terminology.
+            <br><br>
+            Safety categories map to established <strong>content policy frameworks</strong>: CSAM, weapons,
+            self-harm, unqualified medical advice — categories that appear across OpenAI, Anthropic, and Meta's
+            content policies and the EU AI Act's prohibited-use provisions.
+          </div>
+        </div>
+        <div class="info-cell label-purpose">
+          <div class="info-label"><span class="info-label-icon">🎯</span> Why It's Here</div>
+          <div class="info-text">
+            Even factually accurate, logically consistent LLM outputs can be harmful if they propagate stereotypes,
+            use loaded language, or provide dangerous guidance. This step acts as a <em>content safety layer</em>
+            independent of the factual and consistency checks.
+            <br><br>
+            The safety score is intentionally kept <strong>rule-only</strong> (not blended with LLM) because
+            hard safety rules should be deterministic and not subject to LLM interpretation.
+            Bias detection uses the LLM blend for nuance.
+          </div>
+        </div>
+      </div>
+      <div class="howto-section">
+        <div class="info-label"><span class="info-label-icon">⚙</span> How It Works</div>
+        <ol class="steps-list">
+          <li data-n="1"><b>Bias rules (6):</b> regex patterns for loaded qualifiers, absolute generalisations, coded language, and tribal framing. Starts at 100, deducts 20 pts per match.</li>
+          <li data-n="2"><b>Safety rules (6):</b> keyword patterns for weapons, CSAM, self-harm, unqualified medical claims, illegal-activity instructions. Deducts 25 pts per match. <em>Pure rule-only — no LLM influence on safety score.</em></li>
+          <li data-n="3"><b>LLM bias blend</b> (optional, feature-flag guarded): prompts for a <code>Bias Score: X/10</code>, blended 40% rule + 60% LLM into final bias_score.</li>
+          <li data-n="4">Final <b>component score</b> = <code>(bias_score + safety_score) / 2</code>.</li>
+        </ol>
+      </div>
+      <div class="output-row">
+        <span class="output-label">Output</span>
+        <div class="output-fields">
+          <span class="pill pill-green">score [0–100]</span>
+          <span class="pill pill-orange">bias_score</span>
+          <span class="pill pill-red">safety_score</span>
+          <span class="pill pill-blue">bias_flags[ ]</span>
+          <span class="pill pill-red">safety_flags[ ]</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 5: Clarity Scorer ───────────────────────────────── -->
+  <div id="t5" class="card text-card">
+    <div class="card-header">
+      <div class="step-badge">5</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          Clarity &amp; Completeness Scorer
+          <span class="file-tag">src/evaluation/clarity_scorer.py</span>
+          <span class="pill pill-teal">Heuristic NLP</span>
+        </div>
+        <div class="card-subtitle">
+          Measures whether the AI response is readable (clarity) and addresses the original prompt sufficiently
+          (completeness), producing two sub-scores that are combined into a single clarity component.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-cell label-origin">
+          <div class="info-label"><span class="info-label-icon">📚</span> Origin &amp; Provenance</div>
+          <div class="info-text">
+            The sentence-length readability penalty mirrors principles from the <strong>Flesch–Kincaid
+            readability tests</strong> (Kincaid et al., 1975) — originally developed for U.S. Navy training
+            manuals, now the most widely used automated readability formula.
+            <br><br>
+            The <strong>filler and vague phrase taxonomy</strong> ("As an AI language model", "it depends",
+            "Great question!") is specific to LLM output quality assessment — a recognised category of
+            unhelpful AI response patterns documented in RLHF training literature.
+          </div>
+        </div>
+        <div class="info-cell label-purpose">
+          <div class="info-label"><span class="info-label-icon">🎯</span> Why It's Here</div>
+          <div class="info-text">
+            A factually accurate, consistent, unbiased response is still <em>low quality</em> if it's
+            incomprehensible, waffle-heavy, or fails to actually answer the question asked.
+            <br><br>
+            Completeness catches <em>off-topic</em> answers; clarity catches <em>unreadable</em> ones.
+            Both are critical dimensions of LLM response quality that aren't captured by any of the
+            other checkers.
+          </div>
+        </div>
+      </div>
+      <div class="howto-section">
+        <div class="info-label"><span class="info-label-icon">⚙</span> How It Works</div>
+        <ol class="steps-list">
+          <li data-n="1"><b>Completeness:</b> extracts content keywords (4+ chars, stopwords excluded) from the prompt, counts how many appear in the response. <code>score = min(100, overlap_ratio × 130)</code>. Short responses (≤30 words) capped at 55; very long (≥600 words) flagged.</li>
+          <li data-n="2"><b>Clarity — long sentences:</b> if average sentence length &gt; 35 words, deduct 10 pts.</li>
+          <li data-n="3"><b>Clarity — vague phrases:</b> 8 patterns ("it depends", "many factors", "in summary"). Deduct 4 pts each after the first 2, capped at −20.</li>
+          <li data-n="4"><b>Clarity — filler phrases:</b> 7 LLM-specific fillers ("As an AI", "Great question"). Deduct 5 pts each, capped at −15.</li>
+          <li data-n="5"><b>Structure bonus:</b> +5 pts if markdown headers or bullet lists detected in the response.</li>
+          <li data-n="6"><b>Final blend:</b> <code>score = 0.60 × completeness + 0.40 × clarity</code>.</li>
+        </ol>
+      </div>
+      <div class="output-row">
+        <span class="output-label">Output</span>
+        <div class="output-fields">
+          <span class="pill pill-green">score [0–100]</span>
+          <span class="pill pill-teal">completeness_score</span>
+          <span class="pill pill-blue">clarity_score</span>
+          <span class="pill pill-orange">avg_sentence_len</span>
+          <span class="pill pill-blue">has_structure</span>
+          <span class="pill pill-orange">issues[ ]</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 6: Scoring Engine ───────────────────────────────── -->
+  <div id="t6" class="card text-card">
+    <div class="card-header">
+      <div class="step-badge">6</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          Text Scoring Engine
+          <span class="file-tag">src/scoring/scoring_engine.py</span>
+          <span class="pill pill-blue">Weighted MCDA aggregation</span>
+        </div>
+        <div class="card-subtitle">
+          Combines all five component scores into a single weighted confidence score and assigns a letter grade
+          (A–F) with a human-readable explanation for the final verdict.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-cell label-origin">
+          <div class="info-label"><span class="info-label-icon">📚</span> Origin &amp; Provenance</div>
+          <div class="info-text">
+            Implements <strong>Multi-Criteria Decision Analysis (MCDA)</strong> — specifically a
+            simple weighted linear combination, the most interpretable aggregation method in decision science
+            (Hwang &amp; Yoon, 1981, <em>Multiple Attribute Decision Making</em>).
+            <br><br>
+            All weights and grade thresholds are externalised to <code>config/weights.yaml</code> and
+            <code>config/thresholds.yaml</code> — no code change is needed to retune the evaluation for
+            different use-cases (e.g. raising the accuracy weight for factual news evaluation vs. creative
+            writing assessment).
+          </div>
+        </div>
+        <div class="info-cell label-purpose">
+          <div class="info-label"><span class="info-label-icon">🎯</span> Why It's Here</div>
+          <div class="info-text">
+            Five separate component scores are useful for diagnosis but impractical for a summary verdict.
+            This step reduces dimensionality to a single interpretable number while preserving all
+            component detail for drill-down.
+            <br><br>
+            The <strong>weighted design</strong> encodes domain knowledge: accuracy (30%) matters most for
+            factual AI responses; safety (20%) and consistency (20%) are next; bias, clarity, and completeness
+            each contribute equally (10%). These reflect the relative seriousness of different failure modes.
+          </div>
+        </div>
+      </div>
+      <div class="howto-section">
+        <div class="info-label"><span class="info-label-icon">⚙</span> How It Works</div>
+        <div class="formula">
+<span class="cm"># Weighted linear aggregation (weights loaded from config/weights.yaml)</span>
+confidence_score =
+    accuracy_score     <span class="op">×</span> <span class="nm">0.30</span>   <span class="cm"># factual correctness</span>
+  + consistency_score  <span class="op">×</span> <span class="nm">0.20</span>   <span class="cm"># internal logic</span>
+  + safety_score       <span class="op">×</span> <span class="nm">0.20</span>   <span class="cm"># harmful content absence</span>
+  + bias_score         <span class="op">×</span> <span class="nm">0.10</span>   <span class="cm"># language fairness</span>
+  + clarity_score      <span class="op">×</span> <span class="nm">0.10</span>   <span class="cm"># readability</span>
+  + completeness_score <span class="op">×</span> <span class="nm">0.10</span>   <span class="cm"># prompt coverage</span>
+        </div>
+        <div class="weight-grid">
+          <div class="weight-chip w-blue"><span class="wn">Accuracy</span><span class="wv">30%</span></div>
+          <div class="weight-chip w-green"><span class="wn">Consistency</span><span class="wv">20%</span></div>
+          <div class="weight-chip w-red"><span class="wn">Safety</span><span class="wv">20%</span></div>
+          <div class="weight-chip w-pink"><span class="wn">Bias</span><span class="wv">10%</span></div>
+          <div class="weight-chip w-teal"><span class="wn">Clarity</span><span class="wv">10%</span></div>
+          <div class="weight-chip w-orange"><span class="wn">Completeness</span><span class="wv">10%</span></div>
+        </div>
+        <div style="margin-top:10px;font-size:13px;color:var(--muted);">
+          Grade thresholds from <code>config/thresholds.yaml</code>:
+          <span class="pill pill-green" style="margin-left:6px;">A ≥ 90</span>
+          <span class="pill pill-blue">B ≥ 78</span>
+          <span class="pill pill-teal">C ≥ 65</span>
+          <span class="pill pill-orange">D ≥ 50</span>
+          <span class="pill pill-red">F &lt; 50</span>
+        </div>
+      </div>
+      <div class="output-row">
+        <span class="output-label">Output</span>
+        <div class="output-fields">
+          <span class="pill pill-green">confidence_score [0–100]</span>
+          <span class="pill pill-blue">grade (A–F)</span>
+          <span class="pill pill-purple">explanation: str</span>
+          <span class="pill pill-orange">all_issues[ ]</span>
+          <span class="pill pill-blue">factual_details[ ]</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end panel-text -->
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     IMAGE PIPELINE PANEL
+════════════════════════════════════════════════════════════════ -->
+<div id="panel-image" class="panel">
+
+  <!-- Pipeline flow -->
+  <div class="flow-bar">
+    <div class="flow-step img-step" onclick="scrollTo('i1')">
+      <div class="flow-num">1</div>Metadata
+    </div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step img-step" onclick="scrollTo('i2')">
+      <div class="flow-num">2</div>Pixel Forensics
+    </div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step img-step" onclick="scrollTo('i3')">
+      <div class="flow-num">3</div>AI Classifier
+    </div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step img-step" onclick="scrollTo('i4')">
+      <div class="flow-num">4</div>Img-Text Consistency
+    </div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step img-step" onclick="scrollTo('i5')">
+      <div class="flow-num">5</div>Reverse Search
+    </div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step img-step" onclick="scrollTo('i6')">
+      <div class="flow-num">6</div>Scoring Engine
+    </div>
+  </div>
+
+  <!-- ── STEP 1: Metadata Checker ────────────────────────────── -->
+  <div id="i1" class="card img-card">
+    <div class="card-header">
+      <div class="step-badge">1</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          Metadata Checker
+          <span class="file-tag">image_evaluator/metadata_checker.py</span>
+          <span class="pill pill-orange">EXIF / XMP / ICC</span>
+        </div>
+        <div class="card-subtitle">
+          Analyses the file's embedded metadata — EXIF tags, XMP descriptors, ICC colour profiles — to
+          distinguish camera-captured images from AI-generated or heavily post-processed ones based on
+          the presence, absence, and consistency of hardware-specific metadata fields.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-cell label-origin">
+          <div class="info-label"><span class="info-label-icon">📚</span> Origin &amp; Provenance</div>
+          <div class="info-text">
+            <strong>EXIF</strong> (Exchangeable Image File Format) was standardised by JEIDA in 1995 and
+            is now maintained by CIPA (Camera &amp; Imaging Products Association). It defines the binary
+            structure of metadata embedded by camera firmware into every JPEG, TIFF, and WEBP file at capture.
+            <br><br>
+            <strong>MakerNote</strong> (EXIF tag 37500) is a camera-manufacturer private blob written by
+            firmware to store proprietary settings — AF data, lens corrections, custom curves. No AI generator
+            has ever been observed embedding a MakerNote.
+            <div class="ref-box">
+              <strong>Key discriminator:</strong> AI generators (Midjourney, Stable Diffusion, DALL-E, Firefly)
+              produce images with no EXIF, or embed their own software tag. Real cameras always embed make,
+              model, timestamp, and typically MakerNote + GPS.
+            </div>
+          </div>
+        </div>
+        <div class="info-cell label-purpose">
+          <div class="info-label"><span class="info-label-icon">🎯</span> Why It's Here</div>
+          <div class="info-text">
+            Metadata is the <em>fastest and cheapest</em> authenticity signal — it requires no model, no GPU,
+            and no pixel decode. A missing EXIF on a JPEG from a claimed camera source, or the presence of
+            "Midjourney" in the Software tag, is definitive evidence.
+            <br><br>
+            Conversely, a rich authentic metadata fingerprint (MakerNote + GPS + camera pipeline) is strong
+            positive evidence even when pixel analysis is inconclusive.
+          </div>
+        </div>
+      </div>
+      <div class="howto-section">
+        <div class="info-label"><span class="info-label-icon">⚙</span> Scoring Formula (starts at 100)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+          <div class="weight-chip w-red">  <span class="wn">−30</span><span class="wv">No EXIF (JPEG)</span></div>
+          <div class="weight-chip w-red">  <span class="wn">−40</span><span class="wv">AI generator software tag</span></div>
+          <div class="weight-chip w-orange"><span class="wn">−20</span><span class="wv">No camera make/model</span></div>
+          <div class="weight-chip w-orange"><span class="wn">−15</span><span class="wv">Power-of-two dimensions</span></div>
+          <div class="weight-chip w-orange"><span class="wn">−10</span><span class="wv">Timestamp anomaly</span></div>
+          <div class="weight-chip w-green"> <span class="wn">+20</span><span class="wv">Valid camera pipeline</span></div>
+          <div class="weight-chip w-green"> <span class="wn">+15</span><span class="wv">MakerNote present</span></div>
+          <div class="weight-chip w-green"> <span class="wn">+10</span><span class="wv">GPS coordinates</span></div>
+          <div class="weight-chip w-green"> <span class="wn">+10</span><span class="wv">EXIF thumbnail</span></div>
+        </div>
+        <div class="ref-box" style="background:rgba(63,185,80,.05);border-color:rgba(63,185,80,.25);border-left-color:var(--green);color:#7dcea0;">
+          <strong style="color:var(--green)">Power-of-two dimensions</strong> — widths/heights that are exact
+          powers of two (256, 512, 768, 1024, 1536, 2048…) are a tell-tale of diffusion model generators, which
+          operate on fixed-size latent spaces. No camera produces these dimensions. Penalty: −15 to both
+          metadata score <em>and</em> editing_penalty.
+        </div>
+      </div>
+      <div class="output-row">
+        <span class="output-label">Output</span>
+        <div class="output-fields">
+          <span class="pill pill-green">score [0–1]</span>
+          <span class="pill pill-orange">flags[ ]</span>
+          <span class="pill pill-blue">editing_penalty</span>
+          <span class="pill pill-red">detected_ai_generator</span>
+          <span class="pill pill-teal">confidence_band</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: Pixel Forensics ──────────────────────────────── -->
+  <div id="i2" class="card img-card">
+    <div class="card-header">
+      <div class="step-badge">2</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          Pixel Forensics
+          <span class="file-tag">image_evaluator/pixel_forensics.py</span>
+          <span class="pill pill-teal">5 classical techniques</span>
+        </div>
+        <div class="card-subtitle">
+          Applies five complementary classical digital-forensics analyses to the raw pixel data —
+          ELA, JPEG Ghost, noise residual, FFT spectral scan, and quantisation table inspection —
+          each targeting a different type of authenticity artifact.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="howto-section" style="border-bottom:none;">
+        <div class="info-label"><span class="info-label-icon">📐</span> Combined Pixel Score Formula</div>
+        <div class="formula">
+pixel_score = 100 − (ela_bad <span class="op">×</span> <span class="nm">0.30</span>
+                   + ghost_bad <span class="op">×</span> <span class="nm">0.20</span>
+                   + noise_bad <span class="op">×</span> <span class="nm">0.25</span>   <span class="cm"># noise_bad = 60%×patch + 40%×16-block</span>
+                   + fft_bad   <span class="op">×</span> <span class="nm">0.25</span>)
+        </div>
+        <div class="band-box">
+          <strong>Note:</strong> FFT peaks are included in <code>pixel_score</code> for general editing/artefact
+          detection. However, they are <strong>excluded from ai_likelihood</strong> computation because JPEG 8×8
+          block-DCT quantisation routinely creates identical spectral peaks in authentic camera photos —
+          making FFT unreliable as an AI-vs-real discriminator at that level.
+        </div>
+      </div>
+      <!-- Sub-technique grid -->
+      <div class="sub-grid">
+
+        <!-- ELA -->
+        <div class="card sub-card">
+          <div class="card-header">
+            <div class="step-badge">A</div>
+            <div class="card-header-text">
+              <div class="card-title">Error Level Analysis (ELA)
+                <span class="pill pill-orange" style="font-size:10px;">Krawetz 2007</span>
+              </div>
+              <div class="card-subtitle">Re-compression residual maps edited regions.</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="info-cell label-origin" style="border-bottom:1px solid var(--border);">
+              <div class="info-label"><span>📚</span> Origin</div>
+              <div class="info-text">
+                Introduced by <strong>Neal Krawetz</strong> in 2007 at the Black Hat Security Conference.
+                One of the oldest and most widely used image-forgery detection techniques.
+                Exploits the lossy nature of JPEG compression — a region that has been saved more times
+                has lower residual error than a freshly spliced region.
+              </div>
+            </div>
+            <div class="howto-section">
+              <div class="info-label"><span>⚙</span> How It Works</div>
+              <ol class="steps-list">
+                <li data-n="1">Re-compress the original image as JPEG at quality = 75.</li>
+                <li data-n="2">Compute per-pixel absolute difference between original and re-compressed.</li>
+                <li data-n="3">Measure the 95th percentile (p95) of the difference map.</li>
+                <li data-n="4"><code>ela_bad = min(100, p95 / 30 × 100)</code></li>
+              </ol>
+            </div>
+            <div class="output-row">
+              <span class="output-label">Signals</span>
+              <span class="pill pill-orange">ela_p95 (badness 0–100)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- JPEG Ghost -->
+        <div class="card sub-card">
+          <div class="card-header">
+            <div class="step-badge">B</div>
+            <div class="card-header-text">
+              <div class="card-title">JPEG Ghost Analysis
+                <span class="pill pill-blue" style="font-size:10px;">Farid 2009</span>
+              </div>
+              <div class="card-subtitle">Multi-quality residual inconsistency reveals splicing history.</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="info-cell label-origin" style="border-bottom:1px solid var(--border);">
+              <div class="info-label"><span>📚</span> Origin</div>
+              <div class="info-text">
+                Published by <strong>Hany Farid</strong> (Dartmouth / UC Berkeley, 2009) in
+                <em>"Exposing Digital Forgeries in Complex Lighting Environments"</em>.
+                Farid's group is the leading academic lab in digital-image forensics.
+                The technique exploits the fact that different image regions have different JPEG
+                compression quality histories — a dead giveaway for compositing.
+              </div>
+            </div>
+            <div class="howto-section">
+              <div class="info-label"><span>⚙</span> How It Works</div>
+              <ol class="steps-list">
+                <li data-n="1">Re-compress at 5 quality levels: [50, 60, 70, 80, 90].</li>
+                <li data-n="2">For each 32×32 patch, find the quality level producing the minimum residual — the patch's <em>native quality</em>.</li>
+                <li data-n="3">Build a histogram of native-quality indices across all patches.</li>
+                <li data-n="4">Compute normalised Shannon entropy: 0 = all patches agree (pristine); 100 = maximally spread (heavily spliced).</li>
+              </ol>
+            </div>
+            <div class="output-row">
+              <span class="output-label">Signals</span>
+              <span class="pill pill-blue">ghost_score (entropy 0–100)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Noise residual -->
+        <div class="card sub-card">
+          <div class="card-header">
+            <div class="step-badge">C</div>
+            <div class="card-header-text">
+              <div class="card-title">Noise Residual + 16-block CV
+                <span class="pill pill-green" style="font-size:10px;">PRNU – Lukas 2006</span>
+              </div>
+              <div class="card-subtitle">Camera sensor noise is spatially stationary; AI synthesis is not.</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="info-cell label-origin" style="border-bottom:1px solid var(--border);">
+              <div class="info-label"><span>📚</span> Origin</div>
+              <div class="info-text">
+                Derived from <strong>Photo Response Non-Uniformity (PRNU)</strong> fingerprinting by
+                Lukas, Fridrich &amp; Goljan (2006), "<em>Digital Camera Identification from Sensor Pattern Noise</em>" (IEEE TIFS).
+                PRNU is the dominant technique for camera-source attribution in digital forensics.
+                <br><br>
+                The <strong>16-block macro consistency check</strong> is a custom extension: diffusion models
+                synthesise smooth faces, textured hair, and complex backgrounds as separate
+                region-generation passes, producing systematic spatial variation in residual noise
+                that real PRNU never exhibits.
+              </div>
+            </div>
+            <div class="howto-section">
+              <div class="info-label"><span>⚙</span> How It Works</div>
+              <ol class="steps-list">
+                <li data-n="1">Subtract Gaussian-blurred image to isolate noise residual.</li>
+                <li data-n="2"><b>Patch CV:</b> compute per-patch noise std across 32×32 patches; flag if mean std &lt; 2.0 (too smooth) or CV &gt; 0.60 (inconsistent).</li>
+                <li data-n="3"><b>16-block CV:</b> divide residual into 4×4 grid; compute CV of 16 block noise stds. Real cameras: low CV. AI generators: high CV.</li>
+                <li data-n="4"><code>noise_bad = 60%×patch_bad + 40%×block_cv_bad</code></li>
+              </ol>
+            </div>
+            <div class="output-row">
+              <span class="output-label">Signals</span>
+              <span class="pill pill-green">noise_block_consistency (CV)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- FFT -->
+        <div class="card sub-card">
+          <div class="card-header">
+            <div class="step-badge">D</div>
+            <div class="card-header-text">
+              <div class="card-title">FFT Spectral Analysis
+                <span class="pill pill-purple" style="font-size:10px;">Classical signal processing</span>
+              </div>
+              <div class="card-subtitle">Periodic artifacts from GAN upsampling create spectral spikes.</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="info-cell label-origin" style="border-bottom:1px solid var(--border);">
+              <div class="info-label"><span>📚</span> Origin</div>
+              <div class="info-text">
+                The 2D Discrete Fourier Transform for image forensics has been used since the 1990s.
+                Its application to GAN detection was highlighted by <strong>Durall et al. (2020)</strong>
+                "<em>Watch Your Up-Convolution: CNN Based Generative Deep Neural Networks Are Failing to
+                Reproduce Spectral Distributions</em>" (CVPR 2020).
+                <div class="ref-box">
+                  <strong>Photo rule:</strong> FFT feeds into <code>pixel_score</code> (editing artefacts) but
+                  is <em>excluded</em> from the <code>ai_likelihood</code> pixel boost for <strong>photos</strong> —
+                  JPEG 8×8 block-DCT creates identical spectral peaks in authentic camera photos, making FFT
+                  an unreliable AI discriminator at that level.<br><br>
+                  <strong>Illustration exception:</strong> FFT <em>is</em> included in the
+                  <code>ai_likelihood</code> boost for <strong>illustrations</strong> (typically PNG/lossless).
+                  Without JPEG block-DCT compression, elevated FFT peaks genuinely indicate synthetic
+                  periodicity from diffusion or GAN generation.
+                </div>
+              </div>
+            </div>
+            <div class="howto-section">
+              <div class="info-label"><span>⚙</span> How It Works</div>
+              <ol class="steps-list">
+                <li data-n="1">Compute 2D power spectrum; mask the DC component (centre).</li>
+                <li data-n="2">Measure peak-to-mean ratio in log scale: <code>norm_ratio = log1p(peak/mean) / log1p(1e6)</code>.</li>
+                <li data-n="3"><code>fft_bad = min(100, norm_ratio / 0.25 × 100)</code></li>
+              </ol>
+            </div>
+            <div class="output-row">
+              <span class="output-label">Signals</span>
+              <span class="pill pill-purple">fft_peak_ratio [0–1]</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- JPEG Quant -->
+        <div class="card sub-card">
+          <div class="card-header">
+            <div class="step-badge">E</div>
+            <div class="card-header-text">
+              <div class="card-title">JPEG Quantisation Table Check
+                <span class="pill pill-teal" style="font-size:10px;">JPEG standard ISO 10918</span>
+              </div>
+              <div class="card-subtitle">Unusual DQT table values indicate AI or non-camera origin.</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="info-cell label-origin" style="border-bottom:1px solid var(--border);">
+              <div class="info-label"><span>📚</span> Origin</div>
+              <div class="info-text">
+                JPEG DQT (Define Quantisation Table) markers are part of the
+                <strong>JPEG standard (ISO/IEC 10918-1, 1994)</strong>. Every JPEG encoder
+                embeds these tables and they encode the quality-factor profile of the compression.
+                Camera manufacturers use well-known standardised tables. Some AI export pipelines
+                use all-uniform tables or near-lossless tables that no camera produces.
+              </div>
+            </div>
+            <div class="howto-section">
+              <div class="info-label"><span>⚙</span> How It Works</div>
+              <ol class="steps-list">
+                <li data-n="1">Parse raw JFIF byte stream to locate DQT marker segments (0xFFDB).</li>
+                <li data-n="2">Extract all 64-coefficient quantisation tables.</li>
+                <li data-n="3">Flag if all 64 coefficients are identical (uniform table), or if max coefficient &lt; 4 (near-lossless — atypical for cameras).</li>
+                <li data-n="4">Applies an informational −5 to pixel_score outside the main formula if suspicious.</li>
+              </ol>
+            </div>
+            <div class="output-row">
+              <span class="output-label">Signals</span>
+              <span class="pill pill-teal">quant_suspicious: bool</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end sub-grid -->
+      <div class="output-row" style="border-top:1px solid var(--border);">
+        <span class="output-label">Step output</span>
+        <div class="output-fields">
+          <span class="pill pill-green">score [0–1]</span>
+          <span class="pill pill-orange">artifacts[ ]</span>
+          <span class="pill pill-blue">ela_max_diff</span>
+          <span class="pill pill-blue">fft_peak_ratio</span>
+          <span class="pill pill-blue">ghost_score</span>
+          <span class="pill pill-blue">noise_block_consistency</span>
+          <span class="pill pill-teal">confidence_band</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: AI Artifact Classifier ─────────────────────── -->
+  <div id="i3" class="card img-card">
+    <div class="card-header">
+      <div class="step-badge">3</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          AI Artifact Classifier
+          <span class="file-tag">image_evaluator/ai_artifact_classifier.py</span>
+          <span class="pill pill-purple">ML + FreqNet + 6 heuristics</span>
+        </div>
+        <div class="card-subtitle">
+          Estimates the probability that an image was AI-generated using three complementary methods:
+          a HuggingFace ViT classifier (primary), a FreqNet-inspired spectral analysis, and six pixel
+          heuristics — then applies a physics-based ML-gated noise-block boost to the final ai_likelihood.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-cell label-origin">
+          <div class="info-label"><span class="info-label-icon">📚</span> HuggingFace Model Origin</div>
+          <div class="info-text">
+            <strong>umm-maybe/AI-image-detector</strong> — a Vision Transformer (ViT) binary classifier
+            fine-tuned on a large dataset of real photographs vs. images generated by DALL-E, Midjourney,
+            Stable Diffusion, and other diffusion models. Published on Hugging Face Hub.
+            <br><br>
+            ViTs were introduced by <strong>Dosovitskiy et al. (2020)</strong> "<em>An Image is Worth 16×16
+            Words: Transformers for Image Recognition at Scale</em>" (ICLR 2021). Fine-tuning for
+            AI-generated image detection was pioneered by several groups in 2022–2023 as diffusion models
+            became widespread.
+            <div class="ref-box">
+              <strong>FreqNet:</strong> inspired by Wang et al. (2020) "<em>CNN-Generated Images Are
+              Surprisingly Easy to Spot…For Now</em>" (CVPR 2020). Upsampling in generative networks
+              introduces detectable high-frequency artifacts in the frequency domain.
+            </div>
+          </div>
+        </div>
+        <div class="info-cell label-purpose">
+          <div class="info-label"><span class="info-label-icon">🎯</span> Why It's Here</div>
+          <div class="info-text">
+            Classical forensics (ELA, FFT) detects <em>editing</em> artifacts but were
+            designed before diffusion models existed. An ML classifier trained specifically on
+            real-vs-AI-generated images captures the subtle, global statistical patterns that diffusion
+            models imprint — patterns that are invisible to classical techniques.
+            <br><br>
+            The three-tier ensemble (ML + frequency + heuristics) provides redundancy: if the ML model
+            is uncertain or OOD, the FreqNet and heuristics provide independent supporting signals.
+          </div>
+        </div>
+      </div>
+      <div class="howto-section">
+        <div class="info-label"><span class="info-label-icon">⚙</span> Ensemble Combination + Type-Aware ML-Gated Pixel Boost</div>
+        <div class="formula">
+<span class="cm"># Combine ML + heuristics into raw ai_prob</span>
+<span class="kw">if</span> hf_model_available:
+    ai_prob = <span class="nm">0.80</span> × hf_model_prob + <span class="nm">0.20</span> × heuristic_blend
+<span class="kw">else</span>:
+    ai_prob = <span class="nm">0.70</span> × heuristic_mean  + <span class="nm">0.30</span> × freqnet_prob
+
+<span class="cm"># Type-aware gate selection (image_scoring.py)</span>
+<span class="kw">if</span> image_type == <span class="str">"illustration"</span>:
+    gate_low, gate_high, cap = <span class="nm">0.00</span>, <span class="nm">0.15</span>, <span class="nm">0.60</span>
+    fft_sig   = clip((fft_ratio − <span class="nm">0.30</span>) / <span class="nm">0.25</span>, <span class="nm">0</span>, <span class="nm">1</span>)  <span class="cm"># FFT included (PNG/lossless)</span>
+    pixel_sig = (fft_sig + consist_sig) / <span class="nm">2</span>
+<span class="kw">elif</span> image_type == <span class="str">"photo"</span> <span class="kw">and</span> no_exif <span class="kw">and</span> (block_cv ≥ <span class="nm">0.45</span> <span class="kw">or</span> ela_bad ≥ <span class="nm">20</span>):
+    gate_low, gate_high, cap = <span class="nm">0.00</span>, <span class="nm">0.15</span>, <span class="nm">0.60</span>  <span class="cm"># conditional: no_exif + pixel corroboration</span>
+    pixel_sig = clip((block_cv − <span class="nm">0.15</span>) / <span class="nm">0.40</span>, <span class="nm">0</span>, <span class="nm">1</span>)   <span class="cm"># FFT excluded for photos</span>
+<span class="kw">else</span>:
+    gate_low, gate_high, cap = <span class="nm">0.10</span>, <span class="nm">0.30</span>, <span class="nm">0.50</span>  <span class="cm"># standard photo gate</span>
+    pixel_sig = clip((block_cv − <span class="nm">0.15</span>) / <span class="nm">0.40</span>, <span class="nm">0</span>, <span class="nm">1</span>)
+
+gate     = clip((ai_prob − gate_low) / (gate_high − gate_low), <span class="nm">0</span>, <span class="nm">1</span>)
+ai_prob<span class="op">*</span> = ai_prob + gate × pixel_sig × cap × (<span class="nm">1</span> − ai_prob)
+        </div>
+        <div class="band-box">
+          <strong>Gate rationale:</strong> The standard photo gate (gate_low=0.10) prevents JPEG block-DCT
+          artefacts from boosting ai_likelihood when the ML model is confident the image is real.
+          Two additional gate paths handle cases where the ML classifier under-detects:<br><br>
+          • <strong>Illustration gate</strong> (gate_low=0): ML models trained on photorealistic deepfakes
+          fail on cartoon/rendered AI art. FFT is included because illustrations are PNG/lossless.<br>
+          • <strong>Photo conditional gate</strong> (gate_low=0, triggers on no_exif + high block_cv or ELA):
+          handles photorealistic AI images where no_exif and spatially inconsistent noise or
+          synthetic-pixel JPEG compression patterns corroborate the AI hypothesis.
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--muted);">
+          <strong style="color:var(--text)">6 pixel heuristics:</strong>
+          texture smoothness · colour entropy · edge sharpness ·
+          high/low frequency ratio · saturation distribution skew · bilateral symmetry score
+        </div>
+      </div>
+      <div class="output-row">
+        <span class="output-label">Output</span>
+        <div class="output-fields">
+          <span class="pill pill-purple">ai_prob [0–1]</span>
+          <span class="pill pill-blue">method (hf/heuristic)</span>
+          <span class="pill pill-orange">ood_warning</span>
+          <span class="pill pill-teal">confidence_band</span>
+          <span class="pill pill-blue">ai_artifact_features[ ]</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 4: Image-Text Consistency ──────────────────────── -->
+  <div id="i4" class="card img-card">
+    <div class="card-header">
+      <div class="step-badge">4</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          Image-Text Consistency (CLIP)
+          <span class="file-tag">image_evaluator/image_text_consistency.py</span>
+          <span class="pill pill-pink">OpenAI CLIP 2021</span>
+        </div>
+        <div class="card-subtitle">
+          Measures semantic alignment between the image and its accompanying caption using CLIP cosine
+          similarity — detecting mismatched or misleading captions added to authentic or AI-generated images.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-cell label-origin">
+          <div class="info-label"><span class="info-label-icon">📚</span> Origin &amp; Provenance</div>
+          <div class="info-text">
+            <strong>CLIP</strong> (Contrastive Language–Image Pre-Training) was published by
+            <strong>Radford et al. (OpenAI, 2021)</strong> in "<em>Learning Transferable Visual Models
+            from Natural Language Supervision</em>" (ICML 2021).
+            Trained on 400 million image–text pairs scraped from the internet, CLIP maps images and text
+            into a shared semantic embedding space — enabling zero-shot similarity measurement without
+            any task-specific fine-tuning.
+            <div class="ref-box">
+              Model used: <strong>clip-ViT-B/32</strong> via the
+              <code>sentence-transformers</code> library (Reimers &amp; Gurevych, 2019).
+              Cosine similarity is mapped from the empirical [0.15–0.35] range for photo–caption
+              pairs to a [0, 1] consistency score.
+            </div>
+          </div>
+        </div>
+        <div class="info-cell label-purpose">
+          <div class="info-label"><span class="info-label-icon">🎯</span> Why It's Here</div>
+          <div class="info-text">
+            A common manipulation tactic is <em>context injection</em>: adding a misleading caption to an
+            authentic photograph to change its perceived meaning (e.g., labelling a protest photo from
+            one country as being from another).
+            <br><br>
+            CLIP detects this: if the image and caption describe semantically different content, the
+            cosine similarity is low. This step runs <em>only when a caption is provided</em>; without
+            a caption its weight is redistributed to other components.
+          </div>
+        </div>
+      </div>
+      <div class="howto-section">
+        <div class="info-label"><span class="info-label-icon">⚙</span> How It Works</div>
+        <ol class="steps-list">
+          <li data-n="1"><b>CLIP path (preferred):</b> encode image and caption independently using clip-ViT-B/32; compute cosine similarity. Map from [0.15, 0.35] → [0, 1].</li>
+          <li data-n="2"><b>Sub-phrase re-ranking:</b> if full-caption similarity is low, re-test individual noun phrases from the caption to identify which specific concepts are inconsistent.</li>
+          <li data-n="3"><b>Keyword fallback</b> (no CLIP installed): extract dominant colours and nouns from the image description; check keyword overlap with the caption. Less precise but dependency-free.</li>
+          <li data-n="4">Step is skipped entirely (weight redistributed) when no caption is supplied.</li>
+        </ol>
+      </div>
+      <div class="output-row">
+        <span class="output-label">Output</span>
+        <div class="output-fields">
+          <span class="pill pill-green">score [0–1]</span>
+          <span class="pill pill-blue">method (clip/keyword)</span>
+          <span class="pill pill-orange">consistency_issues[ ]</span>
+          <span class="pill pill-blue">ran: bool</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 5: Reverse Image Search ────────────────────────── -->
+  <div id="i5" class="card img-card">
+    <div class="card-header">
+      <div class="step-badge">5</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          Reverse Image Search
+          <span class="file-tag">image_evaluator/reverse_image_search.py</span>
+          <span class="pill pill-green">pHash + 3 APIs</span>
+        </div>
+        <div class="card-subtitle">
+          Queries web image indexes to check whether the image (or a near-identical copy) has appeared
+          online before, verifying provenance and detecting recycled or recontextualised images.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-cell label-origin">
+          <div class="info-label"><span class="info-label-icon">📚</span> Origin &amp; Provenance</div>
+          <div class="info-text">
+            Reverse image search was pioneered by <strong>Google Images</strong> (2011) and is now
+            offered by Google Cloud Vision API, Microsoft Bing Visual Search, and third-party aggregators
+            like SerpApi (Google Lens backend).
+            <br><br>
+            <strong>Perceptual hashing (pHash)</strong> — used for local refinement — was introduced by
+            Zauner (2010) in "<em>Implementation and Benchmarking of Perceptual Image Hash Functions</em>".
+            pHash captures structural similarity that survives JPEG re-compression, scaling, and minor
+            colour adjustments.
+          </div>
+        </div>
+        <div class="info-cell label-purpose">
+          <div class="info-label"><span class="info-label-icon">🎯</span> Why It's Here</div>
+          <div class="info-text">
+            A reverse image search hit establishes <em>prior publication</em> — evidence the image existed
+            before the claimed context. High similarity matches indicate the image is a copy or derivative,
+            not an original.
+            <br><br>
+            This step runs only when an API key is configured; without one, its 10% weight is redistributed
+            to the remaining active components. The three-backend priority order (Google → Bing → SerpApi)
+            maximises hit rate while remaining cost-efficient.
+          </div>
+        </div>
+      </div>
+      <div class="howto-section">
+        <div class="info-label"><span class="info-label-icon">⚙</span> How It Works</div>
+        <ol class="steps-list">
+          <li data-n="1">Try backends in priority order: <b>Google Cloud Vision API</b> → <b>Bing Visual Search API</b> → <b>SerpApi</b> (Google Lens). First successful response wins.</li>
+          <li data-n="2">For each returned source URL, attempt to download the image and compute <b>pHash distance</b> for refined similarity.</li>
+          <li data-n="3">Map best similarity score to one of four tiers: ≥0.90 → 1.00 (exact match), ≥0.70 → 0.80, ≥0.30 → 0.50, otherwise 0.00.</li>
+          <li data-n="4">Step skipped if no API key is configured — weight redistributed proportionally among active steps.</li>
+        </ol>
+      </div>
+      <div class="output-row">
+        <span class="output-label">Output</span>
+        <div class="output-fields">
+          <span class="pill pill-green">score [0–1]</span>
+          <span class="pill pill-blue">found: bool</span>
+          <span class="pill pill-orange">similarity</span>
+          <span class="pill pill-blue">source_urls[ ]</span>
+          <span class="pill pill-blue">ran: bool</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 6: Image Scoring Engine ──────────────────────── -->
+  <div id="i6" class="card img-card">
+    <div class="card-header">
+      <div class="step-badge">6</div>
+      <div class="card-header-text">
+        <div class="card-title">
+          Image Scoring Engine
+          <span class="file-tag">image_evaluator/image_scoring.py</span>
+          <span class="pill pill-purple">Adaptive MCDA + confidence bands</span>
+        </div>
+        <div class="card-subtitle">
+          Aggregates all five pipeline results into a single weighted authenticity score using
+          image-type-adaptive weights, dynamic redistribution for skipped steps, and per-component
+          confidence bands — then produces the final grade, top signals, and human-readable explanation.
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-cell label-origin">
+          <div class="info-label"><span class="info-label-icon">📚</span> Origin &amp; Provenance</div>
+          <div class="info-text">
+            Again uses <strong>MCDA weighted linear combination</strong>. The innovation here over the
+            text pipeline is <strong>adaptive weights by image type</strong>: a photo, an illustration,
+            and a screenshot each have different reliability profiles for each detector (e.g., the AI
+            classifier's weights are lower for illustrations because the training data is primarily photographs).
+            <br><br>
+            <strong>Confidence band propagation</strong> follows the uncertainty quantification principle:
+            each component reports a ±band reflecting how reliable its score is, and these are
+            propagated to the final authenticity score as <code>Σ(w_i × band_i)</code>.
+          </div>
+        </div>
+        <div class="info-cell label-purpose">
+          <div class="info-label"><span class="info-label-icon">🎯</span> Why It's Here</div>
+          <div class="info-text">
+            A single composite score is needed for the grade and summary. The <em>adaptive weights</em>
+            make the system honest: it doesn't apply photo-centric heuristics with full weight to
+            an artwork or a screenshot where those heuristics have lower discriminative power.
+            <br><br>
+            The <em>missing-step redistribution</em> (normalising weights when consistency or reverse
+            search is skipped) ensures the score is always calibrated to the same 0–100 scale regardless
+            of which optional steps ran.
+          </div>
+        </div>
+      </div>
+      <div class="howto-section">
+        <div class="info-label"><span class="info-label-icon">⚙</span> How It Works</div>
+        <div class="formula">
+<span class="cm"># 1. Detect image type from pixel signals</span>
+<span class="cm">#    flat_ratio&gt;0.30 or unique_ratio&lt;0.10 → screenshot</span>
+<span class="cm">#    noise_std&gt;2.5 and flat_ratio&lt;0.25   → photo  (cap=0.25: snow/sky/fog tolerance)</span>
+<span class="cm">#    else                                 → illustration</span>
+image_type = detect_type(flat_ratio, unique_colour_ratio, noise_std)
+
+<span class="cm"># 2. Select weight preset (from config/weights.yaml)</span>
+base_w = WEIGHTS_BY_TYPE[image_type]
+
+<span class="cm"># 3. Compute type-aware ML-gated effective ai_prob (see AI Classifier card)</span>
+ai_prob<span class="op">*</span>  = ai_prob + gate × pixel_sig × cap × (<span class="nm">1</span> − ai_prob)
+
+<span class="cm"># 4. Build scores dict, redistribute weights for skipped steps</span>
+scores    = { metadata, pixel, ai: 1−ai_prob*, [consistency], [reverse] }
+norm_w    = normalize_weights(active_weights)
+
+<span class="cm"># 5. Weighted sum → authenticity_score</span>
+auth = sum(scores[k] × norm_w[k] <span class="kw">for</span> k <span class="kw">in</span> norm_w) × <span class="nm">100</span>
+
+<span class="cm"># 6. Editing likelihood (formula-based)</span>
+editing = <span class="nm">0.60</span> × ela_badness + <span class="nm">0.40</span> × metadata_edit_penalty
+        </div>
+        <div style="margin-top:14px;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Adaptive weights by image type</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:11px;color:var(--blue);font-weight:600;margin-bottom:5px;">Photo (default)</div>
+              <div class="weight-grid">
+                <div class="weight-chip w-orange"><span class="wn">Metadata</span><span class="wv">20%</span></div>
+                <div class="weight-chip w-teal"><span class="wn">Pixel</span><span class="wv">25%</span></div>
+                <div class="weight-chip w-purple"><span class="wn">AI</span><span class="wv">35%</span></div>
+                <div class="weight-chip w-blue"><span class="wn">Consistency</span><span class="wv">10%</span></div>
+                <div class="weight-chip w-green"><span class="wn">Reverse</span><span class="wv">10%</span></div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--orange);font-weight:600;margin-bottom:5px;">Illustration</div>
+              <div class="weight-grid">
+                <div class="weight-chip w-orange"><span class="wn">Metadata</span><span class="wv">30%</span></div>
+                <div class="weight-chip w-teal"><span class="wn">Pixel</span><span class="wv">30%</span></div>
+                <div class="weight-chip w-purple"><span class="wn">AI</span><span class="wv">20%</span></div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:5px;">Screenshot</div>
+              <div class="weight-grid">
+                <div class="weight-chip w-orange"><span class="wn">Metadata</span><span class="wv">50%</span></div>
+                <div class="weight-chip w-teal"><span class="wn">Pixel</span><span class="wv">20%</span></div>
+                <div class="weight-chip w-purple"><span class="wn">AI</span><span class="wv">10%</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:var(--muted);">
+          Grade thresholds from <code>config/thresholds.yaml</code>:
+          <span class="pill pill-green" style="margin-left:6px;">A ≥ 80</span>
+          <span class="pill pill-blue">B ≥ 65</span>
+          <span class="pill pill-teal">C ≥ 50</span>
+          <span class="pill pill-orange">D ≥ 35</span>
+          <span class="pill pill-red">F &lt; 35</span>
+        </div>
+      </div>
+      <div class="output-row">
+        <span class="output-label">Output</span>
+        <div class="output-fields">
+          <span class="pill pill-green">authenticity_score [0–100]</span>
+          <span class="pill pill-purple">ai_likelihood [0–100]</span>
+          <span class="pill pill-orange">editing_likelihood [0–100]</span>
+          <span class="pill pill-blue">grade (A–F)</span>
+          <span class="pill pill-teal">authenticity_band</span>
+          <span class="pill pill-blue">top_signals[ ]</span>
+          <span class="pill pill-purple">explanation: str</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end panel-image -->
+</div><!-- end content -->
+
+<script>
+function showPanel(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+function scrollTo(id) {
+  const el = document.getElementById(id);
+  if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+</script>
+</body>
+</html>

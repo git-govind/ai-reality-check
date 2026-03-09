@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Reality Check — Architecture</title>
+<title>VeritasIQ — Architecture</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -292,8 +292,8 @@
 </head>
 <body>
 
-<h1>🔍 AI Reality Check</h1>
-<div class="subtitle">System Architecture — v2</div>
+<h1>🔍 VeritasIQ</h1>
+<div class="subtitle">Where Intelligence Meets Integrity — System Architecture v2</div>
 
 <div style="max-width:90%;margin:0 auto;">
 
@@ -340,7 +340,7 @@
               <span class="box-tag">pages/1_Dashboard.py</span>
             </div>
             <div class="box-sub">
-              <b>📝 Text Evaluations tab</b><br>
+              <b>📝 Prompt Evaluations tab</b><br>
               Confidence trend · Score bars · Model compare<br>
               Issue frequency heatmap · Raw data table (1-based index)<br>
               <b>🖼 Image Evaluations tab</b><br>
@@ -352,7 +352,7 @@
 
           <div class="box blue box-wide">
             <div class="box-title">
-              🔍 AI Reality Check
+              🔍 VeritasIQ
               <span class="box-tag">pages/2_Text_Evaluator.py</span>
             </div>
             <div class="box-sub">
@@ -722,8 +722,8 @@
               100−(ela×0.30+ghost×0.20<br>
               &nbsp;&nbsp;+noise×0.25+fft×0.25)<br>
               noise = 60%×patch + 40%×16-block<br>
-              <span class="note">FFT in pixel_score only — excluded from ai_likelihood<br>
-              (JPEG 8×8 block-DCT raises FFT in authentic photos too)</span><br>
+              <span class="note">FFT → pixel_score only for <b>photos</b> (JPEG 8×8 block-DCT raises FFT in authentic photos)<br>
+              FFT <b>included</b> in ai_likelihood signal for <b>illustrations</b> (PNG/lossless: no JPEG DCT artefacts)</span><br>
               <span class="util-ref">utils.image_utils.jpeg_recompress · coeff_of_variation</span><br>
               <span class="config-ref">config/thresholds.yaml · weights.yaml</span><br>
               → PixelForensicsResult.score [0,1]<br>
@@ -821,7 +821,9 @@
             </div>
             <div class="box-sub">
               <b>Image-type detection</b> (flat_ratio · unique_ratio · noise_std):<br>
-              &nbsp;&nbsp;photo · illustration · screenshot<br>
+              &nbsp;&nbsp;flat_ratio&gt;0.30 or unique_ratio&lt;0.10 → screenshot<br>
+              &nbsp;&nbsp;noise_std&gt;2.5 and flat_ratio&lt;0.25 → photo (cap=0.25: snow/sky/fog tolerance)<br>
+              &nbsp;&nbsp;else → illustration<br>
               <b>Adaptive weights per type (photo defaults):</b>
               <div class="weights">
                 <span class="weight-pill w-meta">Metadata 20%</span>
@@ -832,11 +834,13 @@
               </div>
               Skipped steps → normalize_weights() redistributes proportionally<br>
               authenticity_score = weighted_sum × 100<br>
-              <b>ai_likelihood (ML-gated pixel boost):</b><br>
-              &nbsp;&nbsp;gate = clip((ai_prob−0.10)/0.20, 0, 1)<br>
-              &nbsp;&nbsp;ai_prob* = ai_prob + gate×noise_block_sig×0.50×(1−ai_prob)<br>
-              &nbsp;&nbsp;signal: noise_block_consistency CV → [0,1] · FFT excluded<br>
-              &nbsp;&nbsp;gate=0 when ML confident (ai_prob&lt;0.10) → no pixel boost<br>
+              <b>ai_likelihood (type-aware ML-gated pixel boost):</b><br>
+              &nbsp;&nbsp;<i>Standard photo:</i> gate=clip((ai_prob−0.10)/0.20,0,1) · cap=0.50<br>
+              &nbsp;&nbsp;<i>Photo conditional</i> (no_exif + block_cv≥0.45 or ELA≥20):<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;gate=clip(ai_prob/0.15,0,1) · cap=0.60<br>
+              &nbsp;&nbsp;<i>Illustration:</i> gate=clip(ai_prob/0.15,0,1) · cap=0.60<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;pixel_sig=(fft_sig+consist_sig)/2 · FFT included<br>
+              &nbsp;&nbsp;ai_prob* = ai_prob + gate×pixel_sig×cap×(1−ai_prob)<br>
               editing_likelihood = 0.6×ela_badness + 0.4×metadata_edit_penalty<br>
               Confidence band propagation: Σ(w_i × band_i) × 100<br>
               Top 3 signals ranked by strength · ai threshold ≥ 0.25<br>
@@ -1164,6 +1168,9 @@
             Pixel AI blend: ai_pixel_blend.gate_low (0.10)<br>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ai_pixel_blend.gate_high (0.30)<br>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ai_pixel_blend.max_contribution (0.50)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ai_pixel_blend.illus_* (gate_low=0, gate_high=0.15, cap=0.60, fft_threshold=0.30)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ai_pixel_blend.photo_highcv_* (gate_low=0, gate_high=0.15, cap=0.60,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;block_cv_min=0.45, ela_min=20)<br>
             Top signals: top_signals_ai_min_prob (0.25)<br>
             Score colour thresholds: text.score_color.*
           </div>

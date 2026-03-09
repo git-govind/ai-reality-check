@@ -106,6 +106,21 @@ _AI_BAND_ADJ_SCREENSHOT   = get_threshold("image.ai_band_adjustment.screenshot")
 _PIXEL_AI_BLEND_CAP      = get_threshold("image.ai_pixel_blend.max_contribution")  # 0.50
 _PIXEL_AI_GATE_LOW       = get_threshold("image.ai_pixel_blend.gate_low")           # 0.10
 _PIXEL_AI_GATE_HIGH      = get_threshold("image.ai_pixel_blend.gate_high")          # 0.30
+# Illustration-specific gate — ML classifier unreliable for stylised / rendered art.
+# Lower gate_low lets pixel forensics contribute even when ML ai_prob ≈ 0.
+# FFT is included for illustrations (PNG/lossless → no JPEG block-DCT artefacts).
+_PIXEL_AI_BLEND_CAP_ILLUS    = get_threshold("image.ai_pixel_blend.illus_max_contribution")  # 0.60
+_PIXEL_AI_GATE_LOW_ILLUS     = get_threshold("image.ai_pixel_blend.illus_gate_low")           # 0.00
+_PIXEL_AI_GATE_HIGH_ILLUS    = get_threshold("image.ai_pixel_blend.illus_gate_high")          # 0.15
+_PIXEL_AI_FFT_THRESHOLD_ILLUS = get_threshold("image.ai_pixel_blend.illus_fft_threshold")     # 0.30
+# Photo conditional gate — for photorealistic AI images when no_exif + high block_cv
+# corroborate the AI hypothesis even though the ML classifier returns low ai_prob.
+# FFT remains excluded (photo path → JPEG DCT still confounds spectral peaks).
+_PHOTO_HIGHCV_GATE_LOW    = get_threshold("image.ai_pixel_blend.photo_highcv_gate_low")     # 0.00
+_PHOTO_HIGHCV_GATE_HIGH   = get_threshold("image.ai_pixel_blend.photo_highcv_gate_high")    # 0.15
+_PHOTO_HIGHCV_BLEND_CAP   = get_threshold("image.ai_pixel_blend.photo_highcv_blend_cap")    # 0.60
+_PHOTO_HIGHCV_BLOCK_CV_MIN = get_threshold("image.ai_pixel_blend.photo_highcv_block_cv_min") # 0.45
+_PHOTO_HIGHCV_ELA_MIN     = get_threshold("image.ai_pixel_blend.photo_highcv_ela_min")      # 20
 # Minimum ai_prob for the "AI detector" entry to appear in top_signals.
 # Below this threshold a low AI probability is an AUTHENTICITY signal, not a concern.
 _TOP_SIGNALS_AI_MIN_PROB = get_threshold("image.top_signals_ai_min_prob")           # 0.25
@@ -135,8 +150,10 @@ def detect_image_type(image_bytes: bytes) -> str:
     Decision rules
     --------------
     1. flat_ratio > 0.30  OR  unique_ratio < 0.10  →  screenshot
-    2. flat_ratio < 0.05  AND noise_std > 2.5       →  photo
-    3. otherwise                                     →  illustration
+    2. noise_std > 2.5    AND flat_ratio < 0.25    →  photo
+       (flat_ratio cap raised from 0.05 to 0.25 so that photos with large smooth
+        regions — snow, sky, water, fog — are not mis-classified as illustration)
+    3. otherwise                                    →  illustration
     """
     try:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -184,7 +201,7 @@ def detect_image_type(image_bytes: bytes) -> str:
     # ── Decision ──────────────────────────────────────────────────────────
     if flat_ratio > 0.30 or unique_ratio < 0.10:
         return "screenshot"
-    if flat_ratio < 0.05 and noise_std > 2.5:
+    if noise_std > 2.5 and flat_ratio < 0.25:
         return "photo"
     return "illustration"
 
@@ -371,27 +388,35 @@ def _reverse_score(result: ReverseSearchResult) -> float:
 # Pixel-forensics-derived AI signal  (supplements the ML classifier)
 # ---------------------------------------------------------------------------
 
-def _pixel_ai_signal(pixel: PixelForensicsResult) -> float:
+def _pixel_ai_signal(pixel: PixelForensicsResult, image_type: str = "photo") -> float:
     """
     Derive a supplementary AI-likelihood signal from pixel forensics.
 
-    Uses **only** noise_block_consistency (16-block noise CV).
+    **Photo / screenshot** (default):
+      Uses only noise_block_consistency (16-block noise CV).
+      FFT spectral peaks are intentionally excluded: JPEG 8×8 block-DCT
+      quantisation routinely creates periodic spectral spikes in authentic
+      camera photos (often with ratio > 0.25), making FFT an unreliable
+      AI-vs-real discriminator at the ai_likelihood level.
 
-    FFT spectral peaks are intentionally excluded: JPEG 8×8 block-DCT
-    quantisation routinely creates periodic spectral spikes in authentic
-    camera photos (often with ratio > 0.25), making FFT an unreliable
-    AI-vs-real discriminator at the ai_likelihood level.  FFT is already
-    captured in pixel_score for detecting general editing artefacts.
-
-    The noise_block_consistency signal (spatial CV of 16-block sensor noise)
-    is more AI-specific: real camera PRNU is spatially stationary, while
-    diffusion / GAN models synthesise textures region-by-region, producing
-    heterogeneous noise levels across the frame.
+    **Illustration**:
+      Combines noise_block_consistency AND FFT peak ratio.
+      Illustrations are typically PNG/lossless — JPEG block-DCT artefacts are
+      absent, so FFT peaks indicate genuine synthetic periodicity produced by
+      diffusion or GAN generation rather than compression.
 
     Returns a value in [0, 1]: higher means more AI-like based on pixel evidence.
     """
     block_cv    = pixel.noise_block_consistency or 0.0
     consist_sig = float(np.clip((block_cv - 0.15) / 0.40, 0.0, 1.0))
+
+    if image_type == "illustration":
+        fft_val = pixel.fft_peak_ratio or 0.0
+        fft_sig = float(np.clip(
+            (fft_val - _PIXEL_AI_FFT_THRESHOLD_ILLUS) / 0.25, 0.0, 1.0
+        ))
+        return (fft_sig + consist_sig) / 2.0
+
     return consist_sig
 
 
@@ -476,24 +501,53 @@ def aggregate(
     type_key = image_type if image_type in _WEIGHTS_BY_TYPE else "photo"
     base_w   = _WEIGHTS_BY_TYPE[type_key]
 
-    # ── Pixel-derived AI signal boost (ML-gated) ──────────────────────────────
-    # Noise block inconsistency is a hallmark of AI generation; boost ai_prob
-    # when it is elevated.  The boost is gated on the ML classifier's own
-    # ai_prob so that a clear "not-AI" ML verdict (ai_prob < gate_low) is NOT
-    # overridden by pixel statistics — this prevents JPEG compression artefacts
-    # (which also elevate pixel signals) from producing false positives on
-    # authentic camera photos.
-    #   gate = 0  when ai_prob < gate_low  → trust the ML verdict, no pixel boost
-    #   gate = 1  when ai_prob > gate_high → ML is uncertain, apply full boost
+    # ── Pixel-derived AI signal boost (ML-gated, type-aware) ─────────────────
+    # For PHOTOS: gate_low=0.10 prevents JPEG block-DCT artefacts from producing
+    #   false-positive boosts when ML is confidently "not AI" (ai_prob < 0.10).
+    # For ILLUSTRATIONS: ML classifier (trained on photorealistic deepfakes) is
+    #   unreliable for stylised artwork — gate_low is 0.00 so pixel forensics can
+    #   contribute even when ML returns near-zero ai_prob.  FFT peaks are also
+    #   included in the pixel signal because illustrations are typically PNG/lossless.
+    # For PHOTOREALISTIC AI PHOTOS: ML classifier also unreliable for hyper-realistic
+    #   AI renders.  When no_exif + block_cv ≥ threshold corroborate the AI signal,
+    #   a lower gate is used so pixel forensics can contribute.  FFT still excluded.
+    _block_cv_val = pixel.noise_block_consistency or 0.0
+    _no_exif      = any("no exif" in f.lower() for f in metadata.flags)
+    _ela_bad      = float(min(100.0, (pixel.ela_max_diff or 0.0)
+                         / get_threshold("image.ela_p95_norm_cap") * 100.0))
+
+    if type_key == "illustration":
+        _gate_low  = _PIXEL_AI_GATE_LOW_ILLUS
+        _gate_high = _PIXEL_AI_GATE_HIGH_ILLUS
+        _blend_cap = _PIXEL_AI_BLEND_CAP_ILLUS
+    elif (type_key == "photo"
+          and _no_exif
+          and (_block_cv_val >= _PHOTO_HIGHCV_BLOCK_CV_MIN
+               or _ela_bad   >= _PHOTO_HIGHCV_ELA_MIN)):
+        # Photorealistic AI: no_exif + corroborating pixel evidence justify lower gate.
+        # Two independent triggers (either alone is sufficient):
+        #   block_cv ≥ 0.45 — real camera PRNU is spatially stationary; extreme CV
+        #                      indicates region-by-region AI synthesis noise
+        #   ela_bad  ≥ 20   — AI images saved as JPEG show ELA artefacts because
+        #                      compression is applied to synthetic (non-camera) pixels;
+        #                      real unedited camera photos rarely exceed ela_bad 20
+        _gate_low  = _PHOTO_HIGHCV_GATE_LOW
+        _gate_high = _PHOTO_HIGHCV_GATE_HIGH
+        _blend_cap = _PHOTO_HIGHCV_BLEND_CAP
+    else:
+        _gate_low  = _PIXEL_AI_GATE_LOW
+        _gate_high = _PIXEL_AI_GATE_HIGH
+        _blend_cap = _PIXEL_AI_BLEND_CAP
+
     _ml_gate = float(np.clip(
-        (ai_artifact.ai_prob - _PIXEL_AI_GATE_LOW)
-        / (_PIXEL_AI_GATE_HIGH - _PIXEL_AI_GATE_LOW),
+        (ai_artifact.ai_prob - _gate_low)
+        / max(_gate_high - _gate_low, 1e-9),
         0.0, 1.0,
     ))
-    _pixel_sig = _pixel_ai_signal(pixel)
+    _pixel_sig = _pixel_ai_signal(pixel, image_type=type_key)
     _effective_ai_prob = float(np.clip(
         ai_artifact.ai_prob
-        + _ml_gate * _pixel_sig * _PIXEL_AI_BLEND_CAP * (1.0 - ai_artifact.ai_prob),
+        + _ml_gate * _pixel_sig * _blend_cap * (1.0 - ai_artifact.ai_prob),
         0.0, 1.0,
     ))
 
@@ -633,7 +687,7 @@ def aggregate(
                 "metadata_score":       round(metadata.score * 100, 1),
                 "pixel_score":          round(pixel.score * 100, 1),
                 "ai_prob_raw_pct":      round(ai_artifact.ai_prob * 100, 1),
-                "pixel_ai_signal":      round(_pixel_ai_signal(pixel), 3),
+                "pixel_ai_signal":      round(_pixel_ai_signal(pixel, image_type=type_key), 3),
                 "effective_ai_prob_pct": round(_effective_ai_prob * 100, 1),
                 "ai_score":             round((1.0 - _effective_ai_prob) * 100, 1),
                 "consistency_score":    round(consistency.score * 100, 1) if consistency.ran else None,
@@ -666,6 +720,9 @@ def aggregate(
                     "D": _IMG_GRADE_D,
                 },
                 "base_weights_for_type": dict(base_w),
+                "ai_gate_low":  _gate_low,
+                "ai_gate_high": _gate_high,
+                "ai_blend_cap": _blend_cap,
                 "ai_band_adjustments": {
                     "illustration": _AI_BAND_ADJ_ILLUSTRATION,
                     "screenshot":   _AI_BAND_ADJ_SCREENSHOT,

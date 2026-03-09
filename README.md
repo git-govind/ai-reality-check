@@ -1,4 +1,5 @@
-# AI Reality Check
+# VeritasIQ
+> Where Intelligence Meets Integrity
 
 An open-source tool that evaluates the **correctness, safety, and reliability** of AI model responses **and** the **authenticity of images** (AI-generated vs. real), using two fully independent evaluation pipelines.
 
@@ -50,7 +51,7 @@ Text Scoring Engine                                 │   6 pixel heuristics (te
                                     │
                                     ▼
                          Dashboard (pages/1_Dashboard.py)
-                           📝 Text Evaluations tab
+                           📝 Prompt Evaluations tab
                            🖼 Image Evaluations tab
                                     │
                     ┌───────────────┼───────────────┐
@@ -89,6 +90,9 @@ Text Scoring Engine                                 │   6 pixel heuristics (te
 | Adaptive scoring weights per image type | Image | ✅ |
 | Per-component confidence bands | Image | ✅ |
 | ML-gated pixel AI boost (noise-block CV → ai_likelihood) | Image | ✅ |
+| Illustration AI gate (lowers gate threshold; includes FFT for PNG/lossless) | Image | ✅ |
+| Photo conditional AI gate (no_exif + block_cv ≥ 0.45 or ELA ≥ 20) | Image | ✅ |
+| Image-type fix: flat_ratio cap 0.25 (snow / sky / water scene tolerance) | Image | ✅ |
 | Power-of-two dimension penalty (AI-typical WxH) | Image | ✅ |
 | CLIP image-text consistency check | Image | ✅ |
 | Reverse image search (Google / Bing / SerpApi) | Image | ✅ |
@@ -163,7 +167,7 @@ ai-reality-check/
 │
 ├── pages/
 │   ├── 1_Dashboard.py                  # Tabbed dashboard: text + image history
-│   ├── 2_Text_Evaluator.py             # Text evaluation UI  ("AI Reality Check")
+│   ├── 2_Text_Evaluator.py             # Text evaluation UI  ("VeritasIQ")
 │   └── 3_Image_Evaluator.py            # Image evaluation UI ("Image Evaluator")
 │
 ├── src/
@@ -225,7 +229,7 @@ image:
 
 ### `config/thresholds.yaml` — grade cut-offs and signal limits
 
-Key entries: `text.grade.*`, `image.grade.*`, `image.ela_p95_norm_cap`, `image.noise.*`, `image.fft_norm_cap`, `image.metadata_penalty.*` (includes `ai_dimensions: 15`), `image.ai_pixel_blend.*` (gate_low, gate_high, max_contribution), `image.top_signals_ai_min_prob`.
+Key entries: `text.grade.*`, `image.grade.*`, `image.ela_p95_norm_cap`, `image.noise.*`, `image.fft_norm_cap`, `image.metadata_penalty.*` (includes `ai_dimensions: 15`), `image.ai_pixel_blend.*` (gate_low, gate_high, max_contribution; plus illustration overrides `illus_*` and photo conditional `photo_highcv_*`), `image.top_signals_ai_min_prob`.
 
 ### `config/features.yaml` — feature flags
 
@@ -259,19 +263,36 @@ Key entries: `text.grade.*`, `image.grade.*`, `image.ela_p95_norm_cap`, `image.n
 | Image-text consistency | 10% | Skipped & redistributed if no caption |
 | Reverse image search | 10% | Skipped & redistributed if no API key |
 
-Weights are automatically adjusted for **illustration** and **screenshot** image types. The image type is detected from pixel-level signals (flat ratio, unique-colour ratio, noise std) before scoring.
+Weights are automatically adjusted for **illustration** and **screenshot** image types. The image type is detected from pixel-level signals: `flat_ratio > 0.30 OR unique_ratio < 0.10 → screenshot`; `noise_std > 2.5 AND flat_ratio < 0.25 → photo`; otherwise `illustration`. The `flat_ratio` cap is 0.25 (not 0.05) to avoid misclassifying photos with large smooth regions — snow, sky, water, fog — as illustrations.
 
 #### ai_likelihood computation
 
-`ai_likelihood` is not simply the raw ML classifier output. It incorporates a pixel forensics signal derived from **noise block consistency** (16-block spatial CV of sensor noise), which is specific to AI generation:
+`ai_likelihood` is not simply the raw ML classifier output. It applies a **type-aware, ML-gated pixel forensics boost** driven by noise block consistency (16-block spatial CV). The gate parameters vary by image type and corroborating evidence:
 
+**Standard photo gate** (default):
 ```
-gate       = clip((ai_prob − 0.10) / 0.20, 0, 1)   # 0 when ML confident, 1 when uncertain
-pixel_sig  = clip((block_cv − 0.15) / 0.40, 0, 1)  # noise-block inconsistency signal
-ai_prob*   = ai_prob + gate × pixel_sig × 0.50 × (1 − ai_prob)
+gate      = clip((ai_prob − 0.10) / 0.20, 0, 1)   # 0 when ML confident real
+pixel_sig = clip((block_cv − 0.15) / 0.40, 0, 1)  # noise inconsistency signal
+ai_prob*  = ai_prob + gate × pixel_sig × 0.50 × (1 − ai_prob)
 ```
 
-The gate prevents pixel statistics from overriding an ML "not-AI" verdict (e.g. from JPEG compression artefacts raising the FFT signal in authentic photos). **FFT peaks are excluded** from the pixel AI signal for this reason.
+**Photo conditional gate** — activates when `no_exif AND (block_cv ≥ 0.45 OR ela_bad ≥ 20)`:
+```
+gate      = clip(ai_prob / 0.15, 0, 1)             # opens sooner; gate_low = 0
+ai_prob*  = ai_prob + gate × pixel_sig × 0.60 × (1 − ai_prob)
+```
+Covers photorealistic AI images where the ML model under-detects but pixel forensics show spatially inconsistent noise (`block_cv ≥ 0.45`) or synthetic compression patterns (`ela_bad ≥ 20`).
+
+**Illustration gate** — always applied for illustration image type:
+```
+gate      = clip(ai_prob / 0.15, 0, 1)             # gate_low = 0 (ML unreliable)
+fft_sig   = clip((fft_ratio − 0.30) / 0.25, 0, 1) # FFT included (PNG/lossless)
+pixel_sig = (fft_sig + consist_sig) / 2
+ai_prob*  = ai_prob + gate × pixel_sig × 0.60 × (1 − ai_prob)
+```
+ML models trained on photorealistic deepfakes fail on illustration-style AI. FFT peaks are included for illustrations (typically PNG) because JPEG block-DCT compression artifacts are absent.
+
+**FFT exclusion for photos:** FFT spectral peaks are excluded from `pixel_sig` in the photo gate — JPEG 8×8 block-DCT routinely raises FFT ratios in authentic camera photos, making it unreliable as an AI discriminator at the `ai_likelihood` level.
 
 #### Pixel forensics sub-scores
 

@@ -9,11 +9,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="Dashboard — AI Reality Check", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Dashboard — VeritasIQ", page_icon="📊", layout="wide")
 st.markdown(
     """
     <style>
     [data-testid="stAppDeployButton"] { display:none; }
+    .viq-brand     { display:flex; align-items:baseline; gap:0.5rem; margin-bottom:0.15rem; }
+    .viq-name      { font-size:0.95rem; font-weight:700; color:#94a3b8; letter-spacing:-0.01em; }
+    .viq-tag       { font-size:0.7rem; color:#4a5568; font-style:italic; }
+    .page-title    { font-size:2rem; font-weight:800; margin-bottom:0.1rem; }
     .grade-chip {
         display:inline-block; border-radius:8px; padding:2px 10px;
         font-weight:700; font-size:0.82rem; margin-right:4px;
@@ -27,19 +31,26 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-st.title("📊 Reliability Dashboard")
+st.markdown(
+    '<div style="display: none" class="viq-brand">'
+    '<span class="viq-name">🔍 VeritasIQ</span>'
+    '<span class="viq-tag">Where Intelligence Meets Integrity</span>'
+    '</div>'
+    '<div class="page-title">📊 Reliability Dashboard</div>',
+    unsafe_allow_html=True,
+)
 st.caption("Aggregated statistics across all evaluations this session.")
 
-tab_text, tab_image = st.tabs(["📝 Text Evaluations", "🖼️ Image Evaluations"])
+tab_text, tab_image = st.tabs(["📝 Prompt Evaluations", "🖼️ Image Evaluations"])
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 1 — Text Evaluations
+# TAB 1 — Prompt Evaluations
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab_text:
     history = st.session_state.get("history", [])
 
     if not history:
-        st.info("No text evaluations yet. Go to the main page and run some prompts first.")
+        st.info("No prompt evaluations yet. Go to the main page and run some prompts first.")
     else:
         # ── Build dataframe ──────────────────────────────────────────────────
         rows = []

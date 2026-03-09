@@ -1,5 +1,5 @@
 """
-AI Reality Check — Text Evaluation Page
+VeritasIQ — Text Evaluation Page
 """
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from utils.scoring_utils import score_to_color
 
 # ── Page config ────────────────────────────────────────────────
 st.set_page_config(
-    page_title="AI Reality Check",
+    page_title="VeritasIQ",
     page_icon="🔍",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -35,6 +35,9 @@ st.markdown(
     <style>
     .main-title { font-size: 2.4rem; font-weight: 800; }
     .sub-title  { color: #888; font-size: 1rem; margin-top:-0.6rem; }
+    .viq-brand  { display:flex; align-items:baseline; gap:0.5rem; margin-bottom:0.15rem; }
+    .viq-name   { font-size:0.95rem; font-weight:700; color:#94a3b8; letter-spacing:-0.01em; }
+    .viq-tag    { font-size:0.7rem; color:#4a5568; font-style:italic; }
     .score-card {
         border-radius: 12px; padding: 18px 20px; margin-bottom: 12px;
         background: #1e1e2e; border: 1px solid #333;
@@ -156,9 +159,12 @@ with st.sidebar:
     st.caption("🐛 Report issues via GitHub Issues")
 
 # ── Header ─────────────────────────────────────────────────────
-st.markdown('<div class="main-title">🔍 AI Reality Check</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="sub-title">Evaluate correctness, safety & reliability of AI responses</div>',
+    '<div style="display: none" class="viq-brand">'
+    '<span class="viq-name">🔍 VeritasIQ</span>'
+    '<span class="viq-tag">Where Intelligence Meets Integrity</span>'
+    '</div>'
+    '<div class="main-title">🔍 Prompt Evaluator</div>',
     unsafe_allow_html=True,
 )
 st.divider()

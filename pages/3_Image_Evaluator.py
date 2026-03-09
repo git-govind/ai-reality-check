@@ -26,7 +26,7 @@ from utils.cache_utils import make_cache_key
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Image Evaluator — AI Reality Check",
+    page_title="Image Evaluator — VeritasIQ",
     page_icon="🖼️",
     layout="wide",
 )
@@ -37,6 +37,9 @@ st.markdown(
     <style>
     .img-title  { font-size:2rem; font-weight:800; }
     .img-sub    { color:#888; font-size:1rem; margin-top:-0.5rem; }
+    .viq-brand  { display:flex; align-items:baseline; gap:0.5rem; margin-bottom:0.15rem; }
+    .viq-name   { font-size:0.95rem; font-weight:700; color:#94a3b8; letter-spacing:-0.01em; }
+    .viq-tag    { font-size:0.7rem; color:#4a5568; font-style:italic; }
     .grade-box  {
         border-radius:16px; padding:18px 28px; text-align:center;
         font-size:3rem; font-weight:900; line-height:1;
@@ -68,7 +71,14 @@ if "img_history" not in st.session_state:
     st.session_state["img_history"] = []
 
 # ── Header ───────────────────────────────────────────────────────────────────
-st.markdown('<div class="img-title">🖼️ Image Authenticity Evaluator</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div style="display: none" class="viq-brand">'
+    '<span class="viq-name">🔍 VeritasIQ</span>'
+    '<span class="viq-tag">Where Intelligence Meets Integrity</span>'
+    '</div>'
+    '<div class="img-title">🖼️ Image Authenticity Evaluator</div>',
+    unsafe_allow_html=True,
+)
 st.markdown(
     '<div class="img-sub">Detect AI-generated images, manipulation, and editing artefacts</div>',
     unsafe_allow_html=True,
