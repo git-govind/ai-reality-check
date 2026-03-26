@@ -75,21 +75,20 @@ except TypeError:
     st.logo(image=_svg_uri(_LOGO_SVG), icon_image=_svg_uri(_ICON_SVG))
 
 _STATIC = pathlib.Path(__file__).parent / "static"
-_arch_html = (_STATIC / "architecture.html").read_text(encoding="utf-8")
-_pipe_html = (_STATIC / "pipeline_guide.html").read_text(encoding="utf-8")
+
+def _js_str(path: pathlib.Path) -> str:
+    """JSON-encode file content and escape </ so it can't close a <script> tag."""
+    return json.dumps(path.read_text(encoding="utf-8")).replace("</", "<\\/")
+
+_arch_js = _js_str(_STATIC / "architecture.html")
+_pipe_js = _js_str(_STATIC / "pipeline_guide.html")
 
 components.html(f"""
 <script>
 var _docs = [
-    {{ icon: '🏗️', label: 'Architecture Guide', html: {json.dumps(_arch_html)} }},
-    {{ icon: '🔬', label: 'Pipeline Guide',      html: {json.dumps(_pipe_html)} }}
+    {{ icon: '🏗\uFE0F', label: 'Architecture Guide', html: {_arch_js} }},
+    {{ icon: '🔬', label: 'Pipeline Guide',      html: {_pipe_js} }}
 ];
-
-// Pre-create blob URLs in the parent window so they survive the service-worker.
-var _docUrls = _docs.map(function(d) {{
-    var blob = new window.parent.Blob([d.html], {{type: 'text/html'}});
-    return window.parent.URL.createObjectURL(blob);
-}});
 
 function injectSidebar() {{
     var doc = window.parent.document;
@@ -114,15 +113,24 @@ function injectSidebar() {{
     section.className = 'viq-docs-section';
     section.style.cssText = 'padding:0.5rem 0 0 0;margin-top:0.25rem;border-top:1px solid rgba(148,163,184,0.2);';
 
-    _docs.forEach(function(d, i) {{
+    _docs.forEach(function(d) {{
+        var html = d.html;
         var a = doc.createElement('a');
-        a.href = _docUrls[i];
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
+        a.href = 'javascript:void(0)';
+        a.style.cursor = 'pointer';
+        a.addEventListener('click', function(e) {{
+            e.preventDefault();
+            var w = window.parent.open('', '_blank');
+            if (w) {{
+                w.document.open();
+                w.document.write(html);
+                w.document.close();
+            }}
+        }});
         a.style.cssText = [
             'display:flex', 'align-items:center', 'gap:0.5rem',
             'padding:0.4rem 1rem', 'border-radius:0.375rem',
-            'text-decoration:none', 'color:inherit',
+            'text-decoration:none', 'color:inherit', 'cursor:pointer',
             'font-size:0.875rem', 'transition:background 0.15s'
         ].join(';');
         a.onmouseover = function() {{ this.style.background = 'rgba(148,163,184,0.1)'; }};
