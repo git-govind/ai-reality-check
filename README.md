@@ -155,8 +155,8 @@ Two interactive HTML reference guides are included in the repository root:
 
 | File | Purpose |
 |------|---------|
-| [`architecture.html`](architecture.html) | Full system architecture diagram — all modules, data flows, scoring formulas, and config keys for both the text and image pipelines. Open directly in any browser. |
-| [`pipeline_guide.html`](pipeline_guide.html) | Step-by-step pipeline guide — detailed breakdown of every evaluation technique (ELA, JPEG Ghost, AI watermark detection, ML gates, …) with code-level formulas, signal explanations, and output field reference. |
+| [`static/architecture.html`](static/architecture.html) | Full system architecture diagram — all modules, data flows, scoring formulas, and config keys for both the text and image pipelines. Open directly in any browser. |
+| [`static/pipeline_guide.html`](static/pipeline_guide.html) | Step-by-step pipeline guide — detailed breakdown of every evaluation technique (ELA, JPEG Ghost, AI watermark detection, ML gates, …) with code-level formulas, signal explanations, and output field reference. |
 
 ---
 

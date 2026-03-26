@@ -74,8 +74,10 @@ except TypeError:
 
 components.html("""
 <script>
-function injectComingSoon() {
+function injectSidebar() {
     var doc = window.parent.document;
+
+    // ── Coming soon badges ────────────────────────────────────────────────
     var links = doc.querySelectorAll('[data-testid="stSidebarNavLink"]');
     links.forEach(function(link, i) {
         if ((i === 3 || i === 4) && !link.querySelector('.cs-badge')) {
@@ -86,10 +88,52 @@ function injectComingSoon() {
             link.appendChild(badge);
         }
     });
+
+    // ── Docs links ────────────────────────────────────────────────────────
+    var nav = doc.querySelector('[data-testid="stSidebarNav"]');
+    if (!nav || nav.querySelector('.viq-docs-section')) return;
+
+    var docs = [
+        { icon: '🏗️', label: 'Architecture Guide', href: '/app/static/architecture.html' },
+        { icon: '🔬', label: 'Pipeline Guide',      href: '/app/static/pipeline_guide.html' }
+    ];
+
+    var section = doc.createElement('div');
+    section.className = 'viq-docs-section';
+    section.style.cssText = 'padding: 0.5rem 0 0 0; margin-top: 0.25rem; border-top: 1px solid rgba(148,163,184,0.2);';
+
+    docs.forEach(function(d) {
+        var a = doc.createElement('a');
+        a.href = d.href;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.style.cssText = [
+            'display:flex', 'align-items:center', 'gap:0.5rem',
+            'padding:0.4rem 1rem', 'border-radius:0.375rem',
+            'text-decoration:none', 'color:inherit',
+            'font-size:0.875rem', 'transition:background 0.15s'
+        ].join(';');
+        a.onmouseover = function() { this.style.background = 'rgba(148,163,184,0.1)'; };
+        a.onmouseout  = function() { this.style.background = 'transparent'; };
+
+        var icon = doc.createElement('span');
+        icon.textContent = d.icon;
+        icon.style.cssText = 'font-size:1rem;';
+
+        var label = doc.createElement('span');
+        label.textContent = d.label;
+
+        a.appendChild(icon);
+        a.appendChild(label);
+        section.appendChild(a);
+    });
+
+    nav.appendChild(section);
 }
-injectComingSoon();
-setTimeout(injectComingSoon, 300);
-setTimeout(injectComingSoon, 1000);
+
+injectSidebar();
+setTimeout(injectSidebar, 300);
+setTimeout(injectSidebar, 1000);
 </script>
 """, height=0)
 
