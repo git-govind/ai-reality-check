@@ -14,11 +14,14 @@ import base64
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 pg = st.navigation([
     st.Page("pages/1_Dashboard.py",       title="Dashboard",       icon="📊"),
     st.Page("pages/2_Text_Evaluator.py",  title="Prompt Evaluator", icon="🔍"),
     st.Page("pages/3_Image_Evaluator.py", title="Image Evaluator",  icon="🖼️"),
+    st.Page("pages/4_Voice_Evaluator.py", title="Voice Evaluator", icon="🎙️"),
+    st.Page("pages/5_Video_Evaluator.py", title="Video Evaluator", icon="🎥"),
 ])
 
 # ── Sidebar logo (st.logo places content above nav links) ────────────────────
@@ -68,6 +71,27 @@ try:
 except TypeError:
     # size parameter not available in this Streamlit version
     st.logo(image=_svg_uri(_LOGO_SVG), icon_image=_svg_uri(_ICON_SVG))
+
+components.html("""
+<script>
+function injectComingSoon() {
+    var doc = window.parent.document;
+    var links = doc.querySelectorAll('[data-testid="stSidebarNavLink"]');
+    links.forEach(function(link, i) {
+        if ((i === 3 || i === 4) && !link.querySelector('.cs-badge')) {
+            var badge = doc.createElement('span');
+            badge.className = 'cs-badge';
+            badge.textContent = 'Coming soon...';
+            badge.style.cssText = 'display:block;color:#9ca3af;font-style:italic;font-size:0.78em;margin-top:1px;pointer-events:none;';
+            link.appendChild(badge);
+        }
+    });
+}
+injectComingSoon();
+setTimeout(injectComingSoon, 300);
+setTimeout(injectComingSoon, 1000);
+</script>
+""", height=0)
 
 pg.run()
 
