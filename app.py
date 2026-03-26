@@ -7,6 +7,8 @@ Run with:  streamlit run app.py
 import sys
 import os
 import base64
+import json
+import pathlib
 
 # Ensure the project root is on sys.path before any page or module imports run.
 # This is required so that packages like `utils/`, `models/`, `profiler.py`, etc.
@@ -72,39 +74,49 @@ except TypeError:
     # size parameter not available in this Streamlit version
     st.logo(image=_svg_uri(_LOGO_SVG), icon_image=_svg_uri(_ICON_SVG))
 
-components.html("""
+_STATIC = pathlib.Path(__file__).parent / "static"
+_arch_html = (_STATIC / "architecture.html").read_text(encoding="utf-8")
+_pipe_html = (_STATIC / "pipeline_guide.html").read_text(encoding="utf-8")
+
+components.html(f"""
 <script>
-function injectSidebar() {
+var _docs = [
+    {{ icon: '🏗️', label: 'Architecture Guide', html: {json.dumps(_arch_html)} }},
+    {{ icon: '🔬', label: 'Pipeline Guide',      html: {json.dumps(_pipe_html)} }}
+];
+
+// Pre-create blob URLs in the parent window so they survive the service-worker.
+var _docUrls = _docs.map(function(d) {{
+    var blob = new window.parent.Blob([d.html], {{type: 'text/html'}});
+    return window.parent.URL.createObjectURL(blob);
+}});
+
+function injectSidebar() {{
     var doc = window.parent.document;
 
-    // ── Coming soon badges ────────────────────────────────────────────────
+    // ── Coming soon badges ──────────────────────────────────────────────
     var links = doc.querySelectorAll('[data-testid="stSidebarNavLink"]');
-    links.forEach(function(link, i) {
-        if ((i === 3 || i === 4) && !link.querySelector('.cs-badge')) {
+    links.forEach(function(link, i) {{
+        if ((i === 3 || i === 4) && !link.querySelector('.cs-badge')) {{
             var badge = doc.createElement('span');
             badge.className = 'cs-badge';
             badge.textContent = 'Coming soon...';
             badge.style.cssText = 'display:block;color:#9ca3af;font-style:italic;font-size:0.78em;margin-top:1px;pointer-events:none;';
             link.appendChild(badge);
-        }
-    });
+        }}
+    }});
 
-    // ── Docs links ────────────────────────────────────────────────────────
+    // ── Docs links ──────────────────────────────────────────────────────
     var nav = doc.querySelector('[data-testid="stSidebarNav"]');
     if (!nav || nav.querySelector('.viq-docs-section')) return;
 
-    var docs = [
-        { icon: '🏗️', label: 'Architecture Guide', href: '/app/static/architecture.html' },
-        { icon: '🔬', label: 'Pipeline Guide',      href: '/app/static/pipeline_guide.html' }
-    ];
-
     var section = doc.createElement('div');
     section.className = 'viq-docs-section';
-    section.style.cssText = 'padding: 0.5rem 0 0 0; margin-top: 0.25rem; border-top: 1px solid rgba(148,163,184,0.2);';
+    section.style.cssText = 'padding:0.5rem 0 0 0;margin-top:0.25rem;border-top:1px solid rgba(148,163,184,0.2);';
 
-    docs.forEach(function(d) {
+    _docs.forEach(function(d, i) {{
         var a = doc.createElement('a');
-        a.href = d.href;
+        a.href = _docUrls[i];
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
         a.style.cssText = [
@@ -113,12 +125,11 @@ function injectSidebar() {
             'text-decoration:none', 'color:inherit',
             'font-size:0.875rem', 'transition:background 0.15s'
         ].join(';');
-        a.onmouseover = function() { this.style.background = 'rgba(148,163,184,0.1)'; };
-        a.onmouseout  = function() { this.style.background = 'transparent'; };
+        a.onmouseover = function() {{ this.style.background = 'rgba(148,163,184,0.1)'; }};
+        a.onmouseout  = function() {{ this.style.background = 'transparent'; }};
 
         var icon = doc.createElement('span');
         icon.textContent = d.icon;
-        icon.style.cssText = 'font-size:1rem;';
 
         var label = doc.createElement('span');
         label.textContent = d.label;
@@ -126,10 +137,10 @@ function injectSidebar() {
         a.appendChild(icon);
         a.appendChild(label);
         section.appendChild(a);
-    });
+    }});
 
     nav.appendChild(section);
-}
+}}
 
 injectSidebar();
 setTimeout(injectSidebar, 300);
